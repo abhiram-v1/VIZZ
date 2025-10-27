@@ -9,6 +9,7 @@ import CatBoostPage from './pages/CatBoostPage';
 import AllAlgorithmsPage from './pages/AllAlgorithmsPage';
 import TreeVisualizationPage from './pages/TreeVisualizationPage';
 import MLLearningJourneyPage from './pages/MLLearningJourneyPage';
+import DecisionBoundaryPage from './pages/DecisionBoundaryPage';
 import { 
   MainLogo, 
   TreeVizIcon, 
@@ -77,6 +78,7 @@ function App() {
             <Route path="/catboost" element={<CatBoostPage />} />
             <Route path="/tree-viz" element={<TreeVisualizationPage />} />
             <Route path="/ml-journey" element={<MLLearningJourneyPage />} />
+            <Route path="/decision-boundary/:algorithm" element={<DecisionBoundaryPage />} />
             <Route path="/all" element={<AllAlgorithmsPage />} />
           </Routes>
         </main>
