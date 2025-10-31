@@ -2,14 +2,14 @@ import React from 'react';
 import { 
   // Icons we actually use
   FaBrain,
-  FaTree, FaLayerGroup, FaBolt, FaFire, FaCat, FaChartBar,
+  FaLayerGroup, FaBolt,
   FaCheckCircle, FaTimesCircle, FaCubes
 } from 'react-icons/fa';
 import { 
-  HiLightningBolt, HiSparkles
+  HiLightningBolt
 } from 'react-icons/hi';
 import { 
-  MdCompareArrows, MdTrendingUp, MdSpeed
+  MdTrendingUp
 } from 'react-icons/md';
 
 // Main Logo Component using professional brain icon
@@ -21,24 +21,11 @@ export const MainLogo = ({ size = 40, className = "" }) => (
   />
 );
 
-// Tree Visualization Icon
-export const TreeVizIcon = ({ size = 24, className = "" }) => (
-  <FaTree 
-    size={size} 
-    className={className}
-    style={{ color: '#22c55e' }}
-  />
-);
-
 // AdaBoost Icon - using tree icon with bolt for boosting
 export const AdaBoostIcon = ({ size = 24, className = "" }) => {
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
-      <FaTree 
-        size={size} 
-        className={className}
-        style={{ color: '#3b82f6' }}
-      />
+      <img src={"/decision-tree.svg"} alt={"Decision Tree"} style={{ width: size, height: size, opacity: 0.9 }} />
       <FaBolt 
         size={size * 0.4} 
         style={{ 
@@ -90,72 +77,6 @@ export const XGBoostIcon = ({ size = 24, className = "" }) => {
           top: -2, 
           right: -2, 
           color: '#ef4444' 
-        }}
-      />
-    </div>
-  );
-};
-
-// LightGBM Icon - using sparkles for light gradient boosting
-export const LightGBMIcon = ({ size = 24, className = "" }) => {
-  return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <HiSparkles 
-        size={size} 
-        className={className}
-        style={{ color: '#06b6d4' }}
-      />
-      <MdSpeed 
-        size={size * 0.4} 
-        style={{ 
-          position: 'absolute', 
-          bottom: -2, 
-          right: -2, 
-          color: '#0891b2' 
-        }}
-      />
-    </div>
-  );
-};
-
-// CatBoost Icon - using cat with boost indicator
-export const CatBoostIcon = ({ size = 24, className = "" }) => {
-  return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <FaCat 
-        size={size} 
-        className={className}
-        style={{ color: '#ec4899' }}
-      />
-      <FaFire 
-        size={size * 0.4} 
-        style={{ 
-          position: 'absolute', 
-          top: -2, 
-          right: -2, 
-          color: '#f97316' 
-        }}
-      />
-    </div>
-  );
-};
-
-// Compare All Icon - using professional comparison icon
-export const CompareIcon = ({ size = 24, className = "" }) => {
-  return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <FaChartBar 
-        size={size} 
-        className={className}
-        style={{ color: '#64748b' }}
-      />
-      <MdCompareArrows 
-        size={size * 0.5} 
-        style={{ 
-          position: 'absolute', 
-          top: -2, 
-          right: -2, 
-          color: '#475569' 
         }}
       />
     </div>

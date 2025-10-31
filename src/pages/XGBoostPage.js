@@ -3,9 +3,9 @@ import AlgorithmPage from '../components/AlgorithmPage';
 
 const XGBoostPage = () => {
   const defaultParams = {
-    n_estimators: 100,
-    learning_rate: 0.1,
-    max_depth: 3
+    n_estimators: 150, // Increased for more complex boundaries
+    learning_rate: 0.08, // Lower for more refined learning
+    max_depth: 5 // Increased depth for complex, adaptive boundaries
   };
 
   return (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import AnimatedDecisionBoundary from '../components/AnimatedDecisionBoundary';
+import { Icon } from '../components/Icons';
 
 const DecisionBoundaryDemo = () => {
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('adaboost');
@@ -14,7 +15,7 @@ const DecisionBoundaryDemo = () => {
   return (
     <div className="decision-boundary-demo-page">
       <div className="demo-header">
-        <h1>🧠 Animated Decision Boundary Demo</h1>
+        <h1><Icon name="brain" size={28} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Animated Decision Boundary Demo</h1>
         <p>Experience how boosting algorithms learn to make better predictions</p>
       </div>
 
@@ -40,7 +41,7 @@ const DecisionBoundaryDemo = () => {
             className="demo-btn primary"
             onClick={() => setShowDemo(!showDemo)}
           >
-            {showDemo ? '🔄 Hide Demo' : '🚀 Show Demo'}
+            {showDemo ? <><Icon name="sync" size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Hide Demo</> : <><Icon name="rocket" size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Show Demo</>}
           </button>
         </div>
       </div>
@@ -55,7 +56,7 @@ const DecisionBoundaryDemo = () => {
       )}
 
       <div className="demo-info">
-        <h3>🎯 What You're Seeing</h3>
+        <h3><Icon name="target" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> What You're Seeing</h3>
         <ul>
           <li><strong>Red Dots:</strong> Patients who had a stroke</li>
           <li><strong>Green Dots:</strong> Patients who did not have a stroke</li>

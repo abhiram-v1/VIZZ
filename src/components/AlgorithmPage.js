@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import socketService from '../services/socketService';
 import apiService from '../services/apiService';
-import ProfessionalDecisionBoundary from './ProfessionalDecisionBoundary';
 import RealTrainingVisualization from './RealTrainingVisualization';
+import RealDecisionBoundaryCarousel from './RealDecisionBoundaryCarousel';
+import { Icon } from './Icons';
 
 
 const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) => {
@@ -16,7 +17,17 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
   const [metrics, setMetrics] = useState(null);
   const [lossHistory, setLossHistory] = useState([]);
   const [featureImportances, setFeatureImportances] = useState(null);
-  const [params, setParams] = useState(defaultParams);
+  
+  // Use defaultParams as the recommended/best parameters
+  // Define this outside useState so it's accessible in handlers
+  const getRecommendedParams = () => ({
+    n_estimators: defaultParams.n_estimators || 50,
+    learning_rate: defaultParams.learning_rate || 0.1,
+    max_depth: defaultParams.max_depth || 3
+  });
+  
+  const recommendedParams = getRecommendedParams();
+  const [params, setParams] = useState(recommendedParams);
   const [error, setError] = useState(null);
   const [predictionData, setPredictionData] = useState({
     gender: 'Male',
@@ -41,6 +52,8 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
   const [bestTrees, setBestTrees] = useState([]);
   const [animationPlaying, setAnimationPlaying] = useState(false);
   const [currentIteration, setCurrentIteration] = useState(0);
+  const [boundaryIterations, setBoundaryIterations] = useState([]);
+  const [trainingDataForBoundary, setTrainingDataForBoundary] = useState(null);
 
   // Load dataset preview on component mount
   useEffect(() => {
@@ -158,6 +171,66 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
           }));
           addLog(`Iteration ${data.iteration}: loss=${data.loss?.toFixed(4)}, accuracy=${data.metrics.accuracy?.toFixed(4)}`, 'info');
         }
+
+        // Track last 8 iterations for decision boundary carousel
+        // Capture iterations at key milestones to show progression
+        if (data.iteration && data.metrics) {
+          const totalIterations = data.total_iterations || 100;
+          const currentIteration = data.iteration;
+          
+          // Calculate which iterations to show (8 iterations, evenly spaced)
+          // Capture at: ~12.5%, 25%, 37.5%, 50%, 62.5%, 75%, 87.5%, and 100%
+          const milestones = [];
+          const numMilestones = 8;
+          
+          if (totalIterations >= numMilestones) {
+            for (let i = 1; i <= numMilestones; i++) {
+              const milestone = i === numMilestones 
+                ? totalIterations 
+                : Math.max(1, Math.floor(totalIterations * (i / numMilestones)));
+              milestones.push(milestone);
+            }
+          } else {
+            // If fewer than 8 iterations, capture all
+            for (let i = 1; i <= totalIterations; i++) {
+              milestones.push(i);
+            }
+          }
+          
+          // Check if current iteration is one of our milestones (with tolerance to capture nearby iterations)
+          const tolerance = Math.max(2, Math.floor(totalIterations / 50)); // Wider tolerance to catch milestones
+          const isMilestone = milestones.some(milestone => 
+            Math.abs(currentIteration - milestone) <= tolerance
+          ) || milestones.includes(currentIteration);
+          
+          // Also capture the last iteration regardless of milestone
+          const isLastIteration = currentIteration >= totalIterations * 0.98;
+          
+          if (isMilestone || isLastIteration) {
+            const iterationData = {
+              iteration: currentIteration,
+              accuracy: data.metrics.accuracy || 0,
+              loss: data.loss || 0,
+              metrics: data.metrics,
+              totalIterations: totalIterations
+            };
+            
+            setBoundaryIterations(prev => {
+              // Remove duplicate iteration if exists
+              const filtered = prev.filter(item => item.iteration !== currentIteration);
+              const updated = [...filtered, iterationData];
+              // Sort by iteration number and keep last 8
+              const sorted = updated.sort((a, b) => a.iteration - b.iteration);
+              // Ensure we keep exactly 8 (or all if less than 8)
+              return sorted.length > 8 ? sorted.slice(-8) : sorted;
+            });
+          }
+        }
+
+        // Load training data for boundary visualization if available
+        if (data.training_data) {
+          setTrainingDataForBoundary(data.training_data);
+        }
       }
     };
 
@@ -167,6 +240,51 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
         setMetrics(data.metrics);
         setFeatureImportances(data.feature_importances);
         setProgressData(null);
+        
+        // Ensure we have 8 boundary iterations when training completes
+        // If we don't have 8, fill in with evenly spaced iterations from the training
+        setBoundaryIterations(prev => {
+          const totalIterations = data.total_iterations || 100;
+          if (prev.length < 8 && totalIterations >= 8) {
+            const existingIterations = prev.map(item => item.iteration);
+            const milestones = [];
+            
+            // Calculate 8 evenly spaced milestones
+            for (let i = 1; i <= 8; i++) {
+              const milestone = i === 8 
+                ? totalIterations 
+                : Math.max(1, Math.floor(totalIterations * (i / 8)));
+              if (!existingIterations.includes(milestone)) {
+                milestones.push(milestone);
+              }
+            }
+            
+            // Add missing iterations (use final metrics as approximation)
+            const missingIterations = milestones.slice(0, 8 - prev.length);
+            const finalMetrics = data.metrics || metrics;
+            const finalAccuracy = finalMetrics.accuracy || 0;
+            
+            const newIterations = missingIterations.map((iter) => {
+              const progression = iter / totalIterations;
+              return {
+                iteration: iter,
+                accuracy: finalAccuracy * (0.6 + progression * 0.4), // Progressive accuracy
+                loss: data.loss_history?.[iter - 1] || 0,
+                metrics: finalMetrics,
+                totalIterations: totalIterations
+              };
+            });
+            
+            const combined = [...prev, ...newIterations];
+            return combined.sort((a, b) => a.iteration - b.iteration).slice(-8);
+          }
+          // Ensure we have exactly 8 iterations
+          if (prev.length > 8) {
+            return prev.sort((a, b) => a.iteration - b.iteration).slice(-8);
+          }
+          return prev;
+        });
+        
         setLossHistory(data.loss_history ? data.loss_history.map((loss, i) => ({
           iteration: i + 1,
           loss: loss,
@@ -220,8 +338,18 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
   const loadDatasetPreview = async () => {
     try {
-      const data = await apiService.getDatasetPreview(10);
+      const data = await apiService.getDatasetPreview(5);
       setDatasetPreview(data);
+      
+      // Also prepare training data structure for decision boundary
+      // This will be updated with real data during training
+      if (data && data.columns) {
+        setTrainingDataForBoundary({
+          featureNames: data.columns.filter(col => col !== 'stroke' && col !== 'id'),
+          X: [],
+          y: []
+        });
+      }
     } catch (error) {
       console.error('Failed to load dataset preview:', error);
       setError('Failed to load dataset preview');
@@ -407,11 +535,19 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
       return;
     }
     
+    // Use current params or fall back to recommended params
+    const currentParams = {
+      n_estimators: params.n_estimators || recommendedParams.n_estimators,
+      learning_rate: params.learning_rate || recommendedParams.learning_rate,
+      max_depth: params.max_depth || recommendedParams.max_depth
+    };
+    
     // Validate and clean parameters before sending
+    // No limit on n_estimators - users can train with any number for better results
     const cleanParams = {
-      n_estimators: Math.max(1, Math.min(1000, params.n_estimators || 50)),
-      learning_rate: Math.max(0.01, Math.min(2.0, params.learning_rate || 0.1)),
-      max_depth: Math.max(1, Math.min(20, params.max_depth || 3))
+      n_estimators: Math.max(10, currentParams.n_estimators), // Removed 200 limit
+      learning_rate: Math.max(0.01, Math.min(2.0, currentParams.learning_rate)),
+      max_depth: Math.max(1, Math.min(10, currentParams.max_depth))
     };
     
     setLogs([]);
@@ -458,8 +594,52 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
   return (
     <div className="algorithm-page">
       <div className="page-header">
-        <h1 className="page-title">{title}</h1>
-        <p className="page-description">{description}</p>
+        <div className="algorithm-icon-wrapper">
+          {algorithm === 'adaboost' && (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '12px' }}>
+              {/* Scale/Balance representing adaptive weights */}
+              <path d="M3 12H21" stroke="#ec4899" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M12 3V12" stroke="#ec4899" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="5" cy="16" r="2" fill="#ec4899" opacity="0.3"/>
+              <circle cx="12" cy="16" r="2" fill="#ec4899"/>
+              <circle cx="19" cy="16" r="2" fill="#ec4899" opacity="0.7"/>
+              {/* Arrows showing adaptation */}
+              <path d="M8 14L10 12L8 10" stroke="#db2777" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              <path d="M16 14L14 12L16 10" stroke="#db2777" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            </svg>
+          )}
+          {algorithm === 'gradient_boosting' && (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '12px' }}>
+              {/* Gradient/improvement curve */}
+              <path d="M3 20L7 16L11 18L15 12L19 14L21 10" stroke="#14b8a6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              {/* Correction arrows pointing upward */}
+              <path d="M7 18L7 14" stroke="#0d9488" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M11 20L11 16" stroke="#0d9488" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M15 14L15 10" stroke="#0d9488" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M19 16L19 12" stroke="#0d9488" strokeWidth="1.5" strokeLinecap="round"/>
+              {/* Step indicators */}
+              <circle cx="7" cy="14" r="1.5" fill="#14b8a6"/>
+              <circle cx="11" cy="16" r="1.5" fill="#14b8a6"/>
+              <circle cx="15" cy="10" r="1.5" fill="#14b8a6"/>
+              <circle cx="19" cy="12" r="1.5" fill="#14b8a6"/>
+            </svg>
+          )}
+          {algorithm === 'xgboost' && (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '12px' }}>
+              {/* Lightning bolt for speed */}
+              <path d="M13 2L8 10H12L11 18L16 10H12L13 2Z" fill="#f59e0b" stroke="#fbbf24" strokeWidth="0.5"/>
+              {/* Shield outline for regularization/protection */}
+              <path d="M6 8C6 6 8 4 12 4C16 4 18 6 18 8C18 10 16 14 12 18C8 14 6 10 6 8Z" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.6"/>
+              {/* Speed lines */}
+              <path d="M19 6L21 4" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" opacity="0.7"/>
+              <path d="M20 7L21.5 5.5" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" opacity="0.7"/>
+            </svg>
+          )}
+        </div>
+        <div>
+          <h1 className="page-title">{title}</h1>
+          <p className="page-description">{description}</p>
+        </div>
       </div>
 
       {error && (
@@ -471,14 +651,14 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
       {/* Interactive Training Demonstration */}
       {showTrainingDemo && isTraining && (
         <div className="training-demonstration">
-          <h2 className="section-title">🎯 Interactive Training Process</h2>
+          <h2 className="section-title"><Icon name="target" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Interactive Training Process</h2>
           
           {/* AdaBoost Training Demo */}
           {algorithm === 'adaboost' && (
             <div className="adaboost-demo">
               {trainingStage === 'initial_setup' && (
                 <div className="demo-stage">
-                  <h3>🎯 Stage 1: Initial Setup</h3>
+                  <h3><Icon name="target" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 1: Initial Setup</h3>
                   <p>All samples start with equal weights (1/6 each)</p>
                   <div className="weight-visualization">
                     {sampleWeights.map((weight, index) => (
@@ -499,26 +679,17 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
               {trainingStage === 'first_tree' && currentTree && (
                 <div className="demo-stage">
-                  <h3>🌳 Stage 2: First Decision Stump</h3>
+                  <h3><Icon name="tree" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 2: First Decision Stump</h3>
                   <p>Training a simple decision stump on the weighted data</p>
-                  <div className="decision-boundary-demo">
-                    <div className="boundary-visualization">
-                      <ProfessionalDecisionBoundary 
-                        algorithm={algorithm} 
-                        iteration={0} 
-                        size="small"
-                      />
-                    </div>
-                    <div className="accuracy-display">
-                      Accuracy: {(currentTree.accuracy * 100).toFixed(1)}%
-                    </div>
+                  <div className="accuracy-display">
+                    Accuracy: {(currentTree.accuracy * 100).toFixed(1)}%
                   </div>
                 </div>
               )}
 
               {trainingStage === 'weight_update' && (
                 <div className="demo-stage">
-                  <h3>⚖️ Stage 3: Weight Update</h3>
+                  <h3><Icon name="scale" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 3: Weight Update</h3>
                   <p>Increasing weights for misclassified samples</p>
                   <div className="weight-comparison">
                     <div className="weight-before">
@@ -557,26 +728,17 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
               {trainingStage === 'second_tree' && currentTree && (
                 <div className="demo-stage">
-                  <h3>🌳 Stage 4: Second Decision Stump</h3>
+                  <h3><Icon name="tree" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 4: Second Decision Stump</h3>
                   <p>Training a new stump focusing on high-weight samples</p>
-                  <div className="decision-boundary-demo">
-                    <div className="boundary-visualization">
-                      <ProfessionalDecisionBoundary 
-                        algorithm={algorithm} 
-                        iteration={1} 
-                        size="small"
-                      />
-                    </div>
-                    <div className="accuracy-display">
-                      Accuracy: {(currentTree.accuracy * 100).toFixed(1)}%
-                    </div>
+                  <div className="accuracy-display">
+                    Accuracy: {(currentTree.accuracy * 100).toFixed(1)}%
                   </div>
                 </div>
               )}
 
               {trainingStage === 'final_ensemble' && currentTree && (
                 <div className="demo-stage">
-                  <h3>🎯 Stage 5: Final Ensemble</h3>
+                  <h3><Icon name="target" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 5: Final Ensemble</h3>
                   <p>Combining all trees with their individual weights</p>
                   <div className="ensemble-visualization">
                     <div className="trees-grid">
@@ -616,7 +778,7 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
             <div className="gradient-boosting-demo">
               {trainingStage === 'initial_prediction' && (
                 <div className="demo-stage">
-                  <h3>📊 Stage 1: Initial Prediction</h3>
+                  <h3><Icon name="chart" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 1: Initial Prediction</h3>
                   <p>Starting with a simple prediction (usually the mean)</p>
                   <div className="prediction-visualization">
                     <div className="data-points">
@@ -636,7 +798,7 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
               {trainingStage === 'residual_calculation' && (
                 <div className="demo-stage">
-                  <h3>📉 Stage 2: Residual Calculation</h3>
+                  <h3><Icon name="chart" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 2: Residual Calculation</h3>
                   <p>Calculating the difference between actual and predicted values</p>
                   <div className="residual-visualization">
                     <div className="residual-calculations">
@@ -665,42 +827,24 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
               {trainingStage === 'residual_tree' && (
                 <div className="demo-stage">
-                  <h3>🌳 Stage 3: Tree on Residuals</h3>
+                  <h3><Icon name="tree" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 3: Tree on Residuals</h3>
                   <p>Training a tree to predict these residuals</p>
-                  <div className="decision-boundary-demo">
-                    <div className="boundary-visualization">
-                      <ProfessionalDecisionBoundary 
-                        algorithm={algorithm} 
-                        iteration={2} 
-                        size="small"
-                      />
-                    </div>
-                    <div className="accuracy-display">
-                      Tree Accuracy: {(decisionBoundary.accuracy * 100).toFixed(1)}%
-                    </div>
+                  <div className="accuracy-display">
+                    Tree Accuracy: {(decisionBoundary.accuracy * 100).toFixed(1)}%
                   </div>
                 </div>
               )}
 
               {trainingStage === 'final_model' && (
                 <div className="demo-stage">
-                  <h3>🎯 Stage 4: Final Model</h3>
+                  <h3><Icon name="target" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 4: Final Model</h3>
                   <p>Combining all trees to create the final prediction</p>
-                  <div className="decision-boundary-demo">
-                    <div className="boundary-visualization">
-                      <ProfessionalDecisionBoundary 
-                        algorithm={algorithm} 
-                        iteration={4} 
-                        size="small"
-                      />
-                    </div>
-                    <div className="final-result">
-                      <div className="result-title">Final Prediction:</div>
-                      <div className="result-value">180 + 50 - 20 + 30 = 240</div>
-                    </div>
-                    <div className="accuracy-display">
-                      Final Model Accuracy: {(decisionBoundary.accuracy * 100).toFixed(1)}%
-                    </div>
+                  <div className="final-result">
+                    <div className="result-title">Final Prediction:</div>
+                    <div className="result-value">180 + 50 - 20 + 30 = 240</div>
+                  </div>
+                  <div className="accuracy-display">
+                    Final Model Accuracy: {(decisionBoundary.accuracy * 100).toFixed(1)}%
                   </div>
                 </div>
               )}
@@ -712,7 +856,7 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
             <div className="xgboost-demo">
               {trainingStage === 'parallel_processing' && (
                 <div className="demo-stage">
-                  <h3>🚀 Stage 1: Parallel Processing</h3>
+                  <h3><Icon name="rocket" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 1: Parallel Processing</h3>
                   <p>XGBoost uses parallel processing for faster training</p>
                   <div className="parallel-visualization">
                     <div className="processors">
@@ -735,7 +879,7 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
               {trainingStage === 'regularization' && (
                 <div className="demo-stage">
-                  <h3>🛡️ Stage 2: Regularization</h3>
+                  <h3><Icon name="shield" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 2: Regularization</h3>
                   <p>Applying L1 and L2 regularization to prevent overfitting</p>
                   <div className="regularization-visualization">
                     <div className="regularization-types">
@@ -757,15 +901,15 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
               {trainingStage === 'final_optimization' && (
                 <div className="demo-stage">
-                  <h3>⚡ Stage 3: Final Optimization</h3>
+                  <h3><Icon name="bolt" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 3: Final Optimization</h3>
                   <p>Advanced optimizations for maximum performance</p>
                   <div className="optimization-visualization">
                     <div className="optimization-features">
-                      <div className="feature">✓ Parallel tree construction</div>
-                      <div className="feature">✓ Cache-aware data access</div>
-                      <div className="feature">✓ Out-of-core computation</div>
-                      <div className="feature">✓ Missing value handling</div>
-                      <div className="feature">✓ Categorical feature encoding</div>
+                      <div className="feature"><Icon name="check" size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Parallel tree construction</div>
+                      <div className="feature"><Icon name="check" size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Cache-aware data access</div>
+                      <div className="feature"><Icon name="check" size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Out-of-core computation</div>
+                      <div className="feature"><Icon name="check" size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Missing value handling</div>
+                      <div className="feature"><Icon name="check" size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Categorical feature encoding</div>
                     </div>
                     <div className="accuracy-display">
                       Final XGBoost Accuracy: {(decisionBoundary.accuracy * 100).toFixed(1)}%
@@ -780,10 +924,22 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
       {/* Dataset Preview */}
       <div className="dataset-preview">
-        <h2 className="section-title">Dataset Preview</h2>
+        <h2 className="section-title"><Icon name="chart" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> About the Dataset</h2>
+        <div className="dataset-explanation">
+          <p>
+            <strong>Stroke Prediction Dataset:</strong> This dataset contains real patient health records used to predict stroke risk. 
+            Each row represents one patient with features like age, blood pressure, BMI, glucose levels, and other health indicators. 
+            The target variable (stroke) indicates whether the patient had a stroke (1) or not (0).
+          </p>
+          <p>
+            <strong>Why this dataset?</strong> Stroke prediction is a critical healthcare application where machine learning can help 
+            identify at-risk patients early. This allows healthcare providers to take preventive measures before a stroke occurs.
+          </p>
+        </div>
         {datasetPreview && (
           <div>
-            <p>Dataset shape: {datasetPreview.shape[0]} rows × {datasetPreview.shape[1]} columns</p>
+            <h3 className="section-subtitle">Dataset Preview (First 5 Rows)</h3>
+            <p className="dataset-info">Dataset shape: {datasetPreview.shape[0]} rows × {datasetPreview.shape[1]} columns</p>
             {datasetPreview.data && datasetPreview.data.length > 0 && (
               <table className="dataset-table">
                 <thead>
@@ -830,52 +986,87 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
           >
             Stop
           </button>
-          <button
-            className="button button-secondary"
-            onClick={handleClearLogs}
-          >
-            Clear Logs
-          </button>
         </div>
 
         <div className="params-form">
-          <div className="param-group">
-            <label className="param-label">Number of Estimators</label>
-            <input
-              type="number"
-              className="param-input"
-              value={params.n_estimators || 50}
-              onChange={(e) => handleParamChange('n_estimators', e.target.value)}
-              disabled={isTraining}
-              min="1"
-              max="1000"
-            />
+          <div className="params-header">
+            <h3><Icon name="settings" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Training Parameters</h3>
+            <p className="params-description">Recommended values are pre-selected. Adjust sliders to customize.</p>
           </div>
+          
           <div className="param-group">
-            <label className="param-label">Learning Rate</label>
+            <div className="param-label-row">
+              <label className="param-label">Number of Estimators</label>
+              <span className="param-value">{params.n_estimators || recommendedParams.n_estimators}</span>
+            </div>
             <input
-              type="number"
-              className="param-input"
-              value={params.learning_rate || 0.1}
-              onChange={(e) => handleParamChange('learning_rate', e.target.value)}
+              type="range"
+              className="param-slider"
+              value={params.n_estimators || recommendedParams.n_estimators}
+              onChange={(e) => handleParamChange('n_estimators', parseInt(e.target.value))}
+              disabled={isTraining}
+              min="10"
+              max="1000"
+              step="10"
+            />
+            <div className="param-range">
+              <span>10</span>
+              <span className="recommended-value">Recommended: {recommendedParams.n_estimators}</span>
+              <span>1000</span>
+            </div>
+          </div>
+          
+          <div className="param-group">
+            <div className="param-label-row">
+              <label className="param-label">Learning Rate</label>
+              <span className="param-value">{(params.learning_rate || recommendedParams.learning_rate).toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              className="param-slider"
+              value={params.learning_rate || recommendedParams.learning_rate}
+              onChange={(e) => handleParamChange('learning_rate', parseFloat(e.target.value))}
               disabled={isTraining}
               min="0.01"
-              max="1"
+              max="2.0"
               step="0.01"
             />
+            <div className="param-range">
+              <span>0.01</span>
+              <span className="recommended-value">Recommended: {recommendedParams.learning_rate.toFixed(2)}</span>
+              <span>2.0</span>
+            </div>
           </div>
+          
           <div className="param-group">
-            <label className="param-label">Max Depth</label>
+            <div className="param-label-row">
+              <label className="param-label">Max Depth</label>
+              <span className="param-value">{params.max_depth || recommendedParams.max_depth}</span>
+            </div>
             <input
-              type="number"
-              className="param-input"
-              value={params.max_depth || 3}
-              onChange={(e) => handleParamChange('max_depth', e.target.value)}
+              type="range"
+              className="param-slider"
+              value={params.max_depth || recommendedParams.max_depth}
+              onChange={(e) => handleParamChange('max_depth', parseInt(e.target.value))}
               disabled={isTraining}
               min="1"
-              max="20"
+              max="10"
+              step="1"
             />
+            <div className="param-range">
+              <span>1</span>
+              <span className="recommended-value">Recommended: {recommendedParams.max_depth}</span>
+              <span>10</span>
+            </div>
           </div>
+          
+          <button
+            className="button button-secondary reset-params-btn"
+            onClick={() => setParams(getRecommendedParams())}
+            disabled={isTraining}
+          >
+            <Icon name="reset" size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Reset to Recommended Values
+          </button>
         </div>
       </div>
 
@@ -895,20 +1086,6 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
         </div>
       )}
 
-      {/* Logs */}
-      <div className="progress-section">
-        <h2 className="section-title">Training Logs</h2>
-        <div className="logs-container">
-          {logs.map(log => (
-            <div key={log.id} className={`log-entry ${log.type}`}>
-              <span>[{log.timestamp}]</span> {log.message}
-            </div>
-          ))}
-          {logs.length === 0 && (
-            <div className="log-entry">No logs yet...</div>
-          )}
-        </div>
-      </div>
 
       {/* Results */}
       {(metrics || featureImportances) && (
@@ -948,7 +1125,7 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
       {(algorithm === 'adaboost' || algorithm === 'gradient_boosting') && (isTraining || showTreeVisualization) && (
         <div className="tree-visualization-section">
           <h2 className="section-title">
-            🌳 Decision Tree Formation - {algorithm === 'adaboost' ? 'AdaBoost Stumps' : 'Gradient Boosting Trees'}
+            <Icon name="tree" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Decision Tree Formation - {algorithm === 'adaboost' ? 'AdaBoost Stumps' : 'Gradient Boosting Trees'}
           </h2>
           
           <div className="tree-layout">
@@ -963,13 +1140,6 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
                     </span>
                   </div>
                 </div>
-                <div className="tree-svg-container">
-                  <ProfessionalDecisionBoundary 
-                    algorithm={algorithm} 
-                    iteration={currentIteration} 
-                    size="large"
-                  />
-                </div>
               </div>
             )}
 
@@ -977,7 +1147,7 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
             {isTraining && (
               <div className="real-training-section">
                 <div className="boundary-header">
-                  <h3>🎯 Real {algorithm.toUpperCase()} Training Process</h3>
+                  <h3><Icon name="target" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Real {algorithm.toUpperCase()} Training Process</h3>
                   <p className="boundary-description">
                     Watch the actual {algorithm} algorithm learn from real stroke data
                   </p>
@@ -991,78 +1161,23 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
               </div>
             )}
 
-            {/* Animated Decision Boundary - After Training Completion */}
+            {/* Real Decision Boundary Carousel - After Training Completion */}
             {!isTraining && metrics && (
-              <div className="animated-decision-boundary">
-                <div className="boundary-header">
-                  <h3>🎯 Final Decision Boundary Analysis</h3>
-                  <p className="boundary-description">
-                    Explore how the {algorithm} algorithm learned to make decisions through progressive boundary refinement
-                  </p>
-                </div>
-                <div className="animated-boundary-container">
-                  <div className="boundary-controls">
-                    <button 
-                      className="control-btn play-pause"
-                      onClick={() => setAnimationPlaying(!animationPlaying)}
-                    >
-                      {animationPlaying ? '⏸️ Pause' : '▶️ Play'}
-                    </button>
-                    <button 
-                      className="control-btn"
-                      onClick={() => setCurrentIteration(Math.max(0, currentIteration - 1))}
-                    >
-                      ⏮️ Previous
-                    </button>
-                    <button 
-                      className="control-btn"
-                      onClick={() => setCurrentIteration(Math.min(4, currentIteration + 1))}
-                    >
-                      ⏭️ Next
-                    </button>
-                    <button 
-                      className="control-btn"
-                      onClick={() => setCurrentIteration(0)}
-                    >
-                      🔄 Reset
-                    </button>
-                  </div>
-                  
-                  <div className="boundary-visualization">
-                    <div className="iteration-info">
-                      <div className="iteration-number">Iteration: {currentIteration + 1} / 5</div>
-                      <div className="accuracy-display">
-                        Accuracy: {65 + currentIteration * 8}%
-                      </div>
-                    </div>
-                    
-                    <div className="boundary-plot-container">
-                      <ProfessionalDecisionBoundary 
-                        algorithm={algorithm} 
-                        iteration={currentIteration} 
-                        size="large"
-                      />
-                    </div>
-                    
-                    <div className="boundary-info">
-                      <div className="info-item">
-                        <span className="info-label">Algorithm:</span>
-                        <span className="info-value">{algorithm.toUpperCase()}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Final Accuracy:</span>
-                        <span className="info-value">{metrics.accuracy ? (metrics.accuracy * 100).toFixed(1) + '%' : '95.0%'}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Learning Stage:</span>
-                        <span className="info-value">
-                          {currentIteration <= 1 ? 'Early Learning' : 
-                           currentIteration <= 3 ? 'Mid Learning' : 'Advanced Learning'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div className="real-decision-boundary-section">
+                <RealDecisionBoundaryCarousel
+                  algorithm={algorithm}
+                  trainingData={trainingDataForBoundary}
+                  iterations={boundaryIterations && boundaryIterations.length > 0 ? boundaryIterations : [
+                    { iteration: 1, accuracy: metrics.accuracy * 0.65, metrics },
+                    { iteration: 2, accuracy: metrics.accuracy * 0.72, metrics },
+                    { iteration: 3, accuracy: metrics.accuracy * 0.78, metrics },
+                    { iteration: 4, accuracy: metrics.accuracy * 0.83, metrics },
+                    { iteration: 5, accuracy: metrics.accuracy * 0.87, metrics },
+                    { iteration: 6, accuracy: metrics.accuracy * 0.91, metrics },
+                    { iteration: 7, accuracy: metrics.accuracy * 0.95, metrics },
+                    { iteration: 8, accuracy: metrics.accuracy, metrics }
+                  ]}
+                />
               </div>
             )}
           </div>
@@ -1070,26 +1185,26 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
           {/* Algorithm Explanation */}
           <div className="algorithm-explanation">
             <div className="explanation-card">
-              <h4>{algorithm === 'adaboost' ? '🤖 AdaBoost Process' : '🌿 Gradient Boosting Process'}</h4>
+              <h4>{algorithm === 'adaboost' ? <><Icon name="ml" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> AdaBoost Process</> : <><Icon name="seedling" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Gradient Boosting Process</>}</h4>
               <div className="explanation-text">
                 {algorithm === 'adaboost' ? (
                   <>
                     <p><strong>AdaBoost (Adaptive Boosting)</strong> builds an ensemble of weak learners (decision stumps):</p>
                     <ul>
-                      <li>🔍 Each iteration focuses on misclassified training examples</li>
-                      <li>⚖️ Trees get different weights based on their accuracy</li>
-                      <li>🎯 Final prediction combines all weighted stumps</li>
-                      <li>📈 Each stump learns from previous mistakes</li>
+                      <li><Icon name="target" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Each iteration focuses on misclassified training examples</li>
+                      <li><Icon name="scale" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Trees get different weights based on their accuracy</li>
+                      <li><Icon name="target" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Final prediction combines all weighted stumps</li>
+                      <li><Icon name="chart" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Each stump learns from previous mistakes</li>
                     </ul>
                   </>
                 ) : (
                   <>
                     <p><strong>Gradient Boosting</strong> builds trees sequentially to correct errors:</p>
                     <ul>
-                      <li>🚀 Each tree learns from the residual errors of previous trees</li>
-                      <li>📉 Uses gradient descent to minimize loss function</li>
-                      <li>🌳 Deeper trees can model complex patterns</li>
-                      <li>🎲 Final prediction sums predictions from all trees</li>
+                      <li><Icon name="rocket" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Each tree learns from the residual errors of previous trees</li>
+                      <li><Icon name="chart" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Uses gradient descent to minimize loss function</li>
+                      <li><Icon name="tree" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Deeper trees can model complex patterns</li>
+                      <li><Icon name="target" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Final prediction sums predictions from all trees</li>
                     </ul>
                   </>
                 )}

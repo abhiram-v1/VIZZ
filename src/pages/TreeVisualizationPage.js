@@ -3,6 +3,7 @@ import socketService from '../services/socketService';
 import apiService from '../services/apiService';
 import { ConnectionStatusIcon, TreeVizIcon } from '../components/Logos';
 import { FaPlay, FaSpinner } from 'react-icons/fa';
+import { Icon } from '../components/Icons';
 
 // Enhanced Tree Node Component with Pixelmatters-inspired animations
 const TreeNode = ({ node, x, y, width, height, level, isLeaf, feature, threshold, prediction, weight, animationDelay = 0 }) => {
@@ -264,7 +265,7 @@ const DataFlowVisualization = ({ treeData, algorithm, onDataPointSelect }) => {
           className="data-flow-btn"
           onClick={animateDataFlow}
         >
-          🎯 Show Data Flow Through Tree
+          <Icon name="target" size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Show Data Flow Through Tree
         </button>
       </div>
       
@@ -740,7 +741,7 @@ const DecisionTreeVisualization = ({ treeData, algorithm, isAnimating }) => {
     <div className="tree-visualization-enhanced">
       {/* Educational explanation */}
       <div className="tree-explanation">
-        <h3>🧠 How This Tree Works</h3>
+        <h3><Icon name="brain" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> How This Tree Works</h3>
         <p>{treeExplanation}</p>
       </div>
       
@@ -757,7 +758,7 @@ const DecisionTreeVisualization = ({ treeData, algorithm, isAnimating }) => {
       {/* Selected data point details */}
       {selectedDataPoint && (
         <div className="data-point-details">
-          <h4>📊 Data Point Analysis</h4>
+          <h4><Icon name="chart" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Data Point Analysis</h4>
           <div className="data-point-content">
             <p><strong>Age:</strong> {selectedDataPoint.age}</p>
             <p><strong>Glucose Level:</strong> {selectedDataPoint.avg_glucose_level}</p>
@@ -791,31 +792,36 @@ const TreeVisualizationPage = () => {
   // R2D3-style storytelling steps with everyday analogies
   const storySteps = [
     {
-      title: "🌳 Think of Decision Trees Like a Game of 20 Questions",
+      title: "Think of Decision Trees Like a Game of 20 Questions",
+      titleIcon: "tree",
       content: "Remember playing '20 Questions'? You ask yes/no questions to guess what someone is thinking. Decision trees work the same way! Instead of guessing an animal, we're asking questions about a patient to predict if they might have a stroke. Each question helps us get closer to the answer.",
       analogy: "Like asking 'Is it bigger than a breadbox?' in 20 Questions",
       visual: "concept"
     },
     {
-      title: "🏥 The Real-World Problem: Predicting Health Risks",
+      title: "The Real-World Problem: Predicting Health Risks",
+      titleIcon: "hospital",
       content: "Imagine you're a doctor with 1000 patients. You want to know which ones might be at risk for a stroke. You can't examine everyone individually, but you have their health records (age, blood pressure, weight, etc.). A decision tree helps you make smart predictions based on patterns you've seen before.",
       analogy: "Like a weather forecaster using past data to predict tomorrow's weather",
       visual: "problem"
     },
     {
-      title: "🎯 Finding the Best Question to Ask First",
+      title: "Finding the Best Question to Ask First",
+      titleIcon: "target",
       content: "Just like in 20 Questions, you want to ask the question that gives you the most information. For stroke prediction, we might ask 'Is the patient over 65?' because age is often the most important factor. This question splits our patients into two groups, making it easier to make predictions.",
       analogy: "Like asking 'Is it alive?' first in 20 Questions - it eliminates half the possibilities",
       visual: "split"
     },
     {
-      title: "🌿 Building a Complete Decision Tree",
+      title: "Building a Complete Decision Tree",
+      titleIcon: "seedling",
       content: "After the first question, we ask more questions on each branch. For patients over 65, we might ask about blood pressure. For younger patients, we might ask about weight. Each branch gets more specific questions until we can make a confident prediction.",
       analogy: "Like a flowchart that guides you through a series of yes/no decisions",
       visual: "tree"
     },
     {
-      title: "🔮 Making Predictions for New Patients",
+      title: "Making Predictions for New Patients",
+      titleIcon: "target",
       content: "When a new patient comes in, we follow the tree's path: 'Are they over 65?' → 'Do they have high blood pressure?' → 'Are they overweight?' Based on their answers, we end up at a prediction: 'High Risk' or 'Low Risk' for stroke.",
       analogy: "Like following a GPS route - each turn gets you closer to your destination",
       visual: "prediction"
@@ -961,11 +967,11 @@ const TreeVisualizationPage = () => {
           <div key={index} className="story-step">
             <div className="story-content">
               <div className="story-text">
-                <h2>{step.title}</h2>
+                <h2>{step.titleIcon && <Icon name={step.titleIcon} size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} />}{step.title}</h2>
                 <p>{step.content}</p>
                 {step.analogy && (
                   <div className="analogy-box">
-                    <div className="analogy-icon">💡</div>
+                    <div className="analogy-icon"><Icon name="lightbulb" size={24} /></div>
                     <div className="analogy-text">
                       <strong>Think of it like this:</strong> {step.analogy}
                     </div>
@@ -976,7 +982,7 @@ const TreeVisualizationPage = () => {
                     className="interactive-demo-btn"
                     onClick={() => setShowInteractiveDemo(true)}
                   >
-                    🚀 Start Interactive Demo
+                    <Icon name="rocket" size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Start Interactive Demo
                   </button>
                 )}
               </div>
@@ -1054,7 +1060,7 @@ const TreeVisualizationPage = () => {
       {showInteractiveDemo && (
         <div className="interactive-demo-section">
           <div className="demo-header">
-            <h2>🎯 Interactive Decision Tree Demo</h2>
+            <h2><Icon name="target" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Interactive Decision Tree Demo</h2>
             <p>Train your own decision tree and see how it makes predictions</p>
           </div>
 
@@ -1177,12 +1183,12 @@ const TreeVisualizationPage = () => {
 
             <div className="algorithm-info">
               <div className="info-card">
-                <h3>🧠 How {selectedAlgorithm === 'adaboost' ? 'AdaBoost' : 'Gradient Boosting'} Works (In Simple Terms)</h3>
+                <h3><Icon name="brain" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> How {selectedAlgorithm === 'adaboost' ? 'AdaBoost' : 'Gradient Boosting'} Works (In Simple Terms)</h3>
                 <div className="explanation">
                   {selectedAlgorithm === 'adaboost' ? (
                     <>
                       <div className="analogy-section">
-                        <h4>🎯 Think of AdaBoost Like a Team of Medical Students</h4>
+                        <h4><Icon name="target" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Think of AdaBoost Like a Team of Medical Students</h4>
                         <p>Imagine you're training a team of medical students to diagnose stroke risk. Each student is only allowed to ask ONE yes/no question (like "Is the patient over 65?"). Here's how AdaBoost works:</p>
                       </div>
                       <div className="step-by-step">

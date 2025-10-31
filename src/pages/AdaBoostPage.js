@@ -3,9 +3,9 @@ import AlgorithmPage from '../components/AlgorithmPage';
 
 const AdaBoostPage = () => {
   const defaultParams = {
-    n_estimators: 50,
-    learning_rate: 1.0,
-    max_depth: 1
+    n_estimators: 100, // Increased for more complex boundaries
+    learning_rate: 0.8, // Slightly lower for more stable learning
+    max_depth: 3 // Increased from 1 to allow more complex decision boundaries
   };
 
   return (

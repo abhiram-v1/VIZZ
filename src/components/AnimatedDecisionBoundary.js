@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Icon } from './Icons';
 
 const AnimatedDecisionBoundary = ({ algorithm = 'adaboost', isVisible = true }) => {
   const [animationPlaying, setAnimationPlaying] = useState(false);
@@ -58,7 +59,7 @@ const AnimatedDecisionBoundary = ({ algorithm = 'adaboost', isVisible = true }) 
   return (
     <div className="animated-decision-boundary">
       <div className="boundary-header">
-        <h3>🎯 Animated Decision Boundary Evolution</h3>
+        <h3><Icon name="target" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Animated Decision Boundary Evolution</h3>
         <p className="boundary-description">
           Watch how the {algorithm} algorithm refines its decision boundaries as it learns
         </p>
@@ -70,25 +71,25 @@ const AnimatedDecisionBoundary = ({ algorithm = 'adaboost', isVisible = true }) 
             className="control-btn play-pause"
             onClick={() => setAnimationPlaying(!animationPlaying)}
           >
-            {animationPlaying ? '⏸️ Pause' : '▶️ Play'}
+            {animationPlaying ? <><Icon name="pause" size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Pause</> : <><Icon name="play" size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Play</>}
           </button>
           <button 
             className="control-btn"
             onClick={() => setCurrentIteration(Math.max(0, currentIteration - 1))}
           >
-            ⏮️ Previous
+            <Icon name="previous" size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Previous
           </button>
           <button 
             className="control-btn"
             onClick={() => setCurrentIteration(Math.min(4, currentIteration + 1))}
           >
-            ⏭️ Next
+            <Icon name="next" size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Next
           </button>
           <button 
             className="control-btn"
             onClick={() => setCurrentIteration(0)}
           >
-            🔄 Reset
+            <Icon name="reset" size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Reset
           </button>
         </div>
         

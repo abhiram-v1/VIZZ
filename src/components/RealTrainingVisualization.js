@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Icon } from './Icons';
 
 const RealTrainingVisualization = ({ algorithm, isTraining, progressData }) => {
   const [trainingData, setTrainingData] = useState(null);
@@ -43,7 +44,7 @@ const RealTrainingVisualization = ({ algorithm, isTraining, progressData }) => {
     return (
       <div className="real-training-visualization">
         <div className="loading-message">
-          <h3>🔄 Loading Real Training Data...</h3>
+          <h3><Icon name="sync" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Loading Real Training Data...</h3>
           <p>Connecting to actual {algorithm} model training...</p>
         </div>
       </div>
@@ -61,7 +62,7 @@ const RealTrainingVisualization = ({ algorithm, isTraining, progressData }) => {
     return (
       <div className="real-training-visualization">
         <div className="error-message">
-          <h3>❌ Feature Error</h3>
+          <h3><Icon name="timesCircle" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Feature Error</h3>
           <p>Required features (age, avg_glucose_level) not found in dataset</p>
         </div>
       </div>
@@ -83,7 +84,7 @@ const RealTrainingVisualization = ({ algorithm, isTraining, progressData }) => {
   return (
     <div className="real-training-visualization">
       <div className="visualization-header">
-        <h3>🎯 Real {algorithm.toUpperCase()} Training - Iteration {currentIteration + 1}</h3>
+        <h3><Icon name="target" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Real {algorithm.toUpperCase()} Training - Iteration {currentIteration + 1}</h3>
         <div className="training-stats">
           <span className="accuracy">Accuracy: {(accuracy * 100).toFixed(1)}%</span>
           <span className="samples">Samples: {X_2d.length}</span>

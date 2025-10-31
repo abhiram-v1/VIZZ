@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { Icon } from '../components/Icons';
 
 // Marvel-style Decision Boundary Visualization Page
 const DecisionBoundaryPage = () => {
@@ -150,7 +151,7 @@ const DecisionBoundaryPage = () => {
           {/* Stage Details */}
           <div className="stage-details">
             <div className="detail-card">
-              <div className="detail-icon">🎯</div>
+              <div className="detail-icon"><Icon name="target" size={24} /></div>
               <div className="detail-content">
                 <h4>Decision Rules</h4>
                 <p>
@@ -162,7 +163,7 @@ const DecisionBoundaryPage = () => {
             </div>
             
             <div className="detail-card">
-              <div className="detail-icon">📊</div>
+              <div className="detail-icon"><Icon name="chart" size={24} /></div>
               <div className="detail-content">
                 <h4>Complexity</h4>
                 <p>
@@ -174,7 +175,7 @@ const DecisionBoundaryPage = () => {
             </div>
             
             <div className="detail-card">
-              <div className="detail-icon">⚡</div>
+              <div className="detail-icon"><Icon name="bolt" size={24} /></div>
               <div className="detail-content">
                 <h4>Performance</h4>
                 <p>

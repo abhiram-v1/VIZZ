@@ -252,10 +252,12 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         # Get labels
         y_labels = y_train.values
         
+        # IMPORTANT: Model trains on ALL data (no sampling limit)
+        # This allows training with any number of samples for better decision boundaries
         # Train a simple model
         from sklearn.ensemble import AdaBoostClassifier
         model = AdaBoostClassifier(n_estimators=n_estimators, random_state=42)
-        model.fit(X_2d, y_labels)
+        model.fit(X_2d, y_labels)  # Uses all available training samples
         
         # Create a grid for decision boundary
         h = 0.5
@@ -273,13 +275,37 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         ax.contour(xx, yy, Z, colors='black', linewidths=2)
         
         # Plot the actual data points
+        # For large datasets, sample points for visualization clarity, but train on all data
         stroke_points = X_2d[y_labels == 1]
         no_stroke_points = X_2d[y_labels == 0]
         
-        ax.scatter(no_stroke_points[:, 0], no_stroke_points[:, 1], 
-                  c='red', label='No Stroke', alpha=0.7, s=50)
-        ax.scatter(stroke_points[:, 0], stroke_points[:, 1], 
-                  c='green', label='Stroke', alpha=0.7, s=50)
+        # Balance visualization samples - take equal numbers from each class
+        # This ensures good visualization even with imbalanced original data
+        max_viz_points = 2000
+        min_class_viz = min(len(stroke_points), len(no_stroke_points), max_viz_points)
+        
+        # Sample equal numbers from each class for balanced visualization
+        if len(stroke_points) > min_class_viz:
+            stroke_points_viz = stroke_points[np.random.choice(len(stroke_points), min_class_viz, replace=False)]
+        else:
+            stroke_points_viz = stroke_points
+            
+        if len(no_stroke_points) > min_class_viz:
+            no_stroke_points_viz = no_stroke_points[np.random.choice(len(no_stroke_points), min_class_viz, replace=False)]
+        else:
+            no_stroke_points_viz = no_stroke_points
+        
+        # Ensure balanced visualization (same count for both classes)
+        final_viz_count = min(len(stroke_points_viz), len(no_stroke_points_viz))
+        if len(stroke_points_viz) > final_viz_count:
+            stroke_points_viz = stroke_points_viz[np.random.choice(len(stroke_points_viz), final_viz_count, replace=False)]
+        if len(no_stroke_points_viz) > final_viz_count:
+            no_stroke_points_viz = no_stroke_points_viz[np.random.choice(len(no_stroke_points_viz), final_viz_count, replace=False)]
+        
+        ax.scatter(no_stroke_points_viz[:, 0], no_stroke_points_viz[:, 1], 
+                  c='red', label=f'No Stroke (showing {len(no_stroke_points_viz)} of {len(no_stroke_points)})', alpha=0.7, s=50)
+        ax.scatter(stroke_points_viz[:, 0], stroke_points_viz[:, 1], 
+                  c='green', label=f'Stroke (showing {len(stroke_points_viz)} of {len(stroke_points)})', alpha=0.7, s=50)
         
         # Labels and title
         ax.set_xlabel(x_label, fontsize=12)
@@ -610,9 +636,37 @@ def load_default_dataset():
             le = LabelEncoder()
             X_encoded[feature] = le.fit_transform(X_encoded[feature].astype(str))
         
-        # Split data
+        # Balance classes before splitting to ensure equal representation
+        # This prevents imbalanced datasets (e.g., 500 no-stroke vs 100 stroke)
+        stroke_indices = y[y == 1].index
+        no_stroke_indices = y[y == 0].index
+        
+        # Find the smaller class and balance to that size
+        min_class_size = min(len(stroke_indices), len(no_stroke_indices))
+        
+        if min_class_size == 0:
+            print("Warning: One class has zero samples. Using all available data.")
+            balanced_indices = np.concatenate([stroke_indices, no_stroke_indices])
+        else:
+            # Sample equal numbers from each class
+            balanced_stroke_indices = np.random.choice(stroke_indices, min_class_size, replace=False)
+            balanced_no_stroke_indices = np.random.choice(no_stroke_indices, min_class_size, replace=False)
+            
+            # Combine balanced indices
+            balanced_indices = np.concatenate([balanced_stroke_indices, balanced_no_stroke_indices])
+        
+        np.random.shuffle(balanced_indices)  # Shuffle for randomness
+        
+        # Create balanced dataset
+        X_balanced = X_encoded.loc[balanced_indices].reset_index(drop=True)
+        y_balanced = y.loc[balanced_indices].reset_index(drop=True)
+        
+        print(f"Original dataset: {len(y)} samples ({y.sum()} stroke, {len(y) - y.sum()} no-stroke)")
+        print(f"Balanced dataset: {len(y_balanced)} samples ({y_balanced.sum()} stroke, {len(y_balanced) - y_balanced.sum()} no-stroke)")
+        
+        # Split balanced data
         X_train, X_test, y_train, y_test = train_test_split(
-            X_encoded, y, test_size=0.2, random_state=42, stratify=y
+            X_balanced, y_balanced, test_size=0.2, random_state=42, stratify=y_balanced
         )
         
         # Store in global data_store
@@ -857,9 +911,8 @@ async def upload_dataset(file: UploadFile = File(...)):
         if 'stroke' not in df.columns:
             raise HTTPException(status_code=400, detail="Dataset must have 'stroke' column as target")
         
-        # Limit dataset size for demo (max 10k rows)
-        if len(df) > 10000:
-            df = df.sample(n=10000, random_state=42)
+        # No limit on dataset size - use all available data for better training
+        # Users can train with any number of samples
         
         # Store the new dataset
         data_store['dataset'] = df
@@ -883,9 +936,35 @@ async def upload_dataset(file: UploadFile = File(...)):
             le = LabelEncoder()
             X_encoded[feature] = le.fit_transform(X_encoded[feature].astype(str))
         
-        # Split data
+        # Balance classes before splitting to ensure equal representation
+        # This prevents imbalanced datasets (e.g., 500 no-stroke vs 100 stroke)
+        stroke_indices = y[y == 1].index
+        no_stroke_indices = y[y == 0].index
+        
+        # Find the smaller class and balance to that size
+        min_class_size = min(len(stroke_indices), len(no_stroke_indices))
+        
+        if min_class_size == 0:
+            raise HTTPException(status_code=400, detail="Dataset must contain both stroke and no-stroke cases")
+        
+        # Sample equal numbers from each class
+        balanced_stroke_indices = np.random.choice(stroke_indices, min_class_size, replace=False)
+        balanced_no_stroke_indices = np.random.choice(no_stroke_indices, min_class_size, replace=False)
+        
+        # Combine balanced indices
+        balanced_indices = np.concatenate([balanced_stroke_indices, balanced_no_stroke_indices])
+        np.random.shuffle(balanced_indices)  # Shuffle for randomness
+        
+        # Create balanced dataset
+        X_balanced = X_encoded.loc[balanced_indices].reset_index(drop=True)
+        y_balanced = y.loc[balanced_indices].reset_index(drop=True)
+        
+        print(f"Original dataset: {len(y)} samples ({y.sum()} stroke, {len(y) - y.sum()} no-stroke)")
+        print(f"Balanced dataset: {len(y_balanced)} samples ({y_balanced.sum()} stroke, {len(y_balanced) - y_balanced.sum()} no-stroke)")
+        
+        # Split balanced data
         X_train, X_test, y_train, y_test = train_test_split(
-            X_encoded, y, test_size=0.2, random_state=42, stratify=y
+            X_balanced, y_balanced, test_size=0.2, random_state=42, stratify=y_balanced
         )
         
         data_store.update({
