@@ -28,13 +28,14 @@ This application serves two main purposes:
 - **Training Logs**: Detailed console logs showing training progress
 
 ### 3. Decision Boundary Visualizations
-- **Real Decision Boundaries**: Visualize actual decision boundaries from trained models
+- **Real Decision Boundaries**: Visualize actual decision boundaries from trained models using matplotlib
 - **Iterative Progression**: See how decision boundaries evolve through training iterations
 - **Carousel Navigation**: Browse through different iterations of the decision boundary
 - **Auto-Play Slideshow**: Play button automatically advances through decision boundaries (2-second intervals)
-- **Manual Control**: Pause/play and navigate manually with previous/next buttons
+- **Manual Control**: Pause/play and navigate manually with previous/next buttons or dot indicators
 - **Dark Theme**: Beautiful dark-themed visualizations optimized for readability
 - **Real Model Integration**: Fetches actual decision boundaries from backend API
+- **Balanced Visualization**: Automatically samples equal numbers from each class for clear visualization
 
 ### 4. Tree Visualizations
 - **Interactive Decision Trees**: Visualize individual trees from boosting algorithms
@@ -196,11 +197,13 @@ python start_servers.py
 5. **Chapter 5**: Run experiments and compare algorithm performance
 
 ### Interactive Elements
-- **Decision Tree Diagram**: Compact, readable visualization showing decision-making process with optimized text sizes
+- **Decision Tree Diagram**: Compact, readable visualization showing decision-making process with optimized text sizes (16px text, 32px icons)
 - **AdaBoost Steps**: Auto-play slideshow (4.5 seconds per step) or manually navigate through step-by-step AdaBoost training process
-- **Play Button**: Start auto-play to automatically advance through AdaBoost explanation steps
+- **Play Button**: Start auto-play to automatically advance through AdaBoost explanation steps - stops at last step automatically
+- **Step Indicator**: Visual indicator showing current step (e.g., "Step 1 / 6")
 - **Algorithm Tabs**: Switch between Overview, AdaBoost, Gradient Boosting, and XGBoost explanations
 - **Search Results**: Click any search result to navigate directly to that section
+- **Smart Auto-Play**: Auto-play automatically stops when manually navigating, can be resumed with play button
 
 ## 🔬 Algorithm Training Features
 
@@ -217,17 +220,21 @@ Each page provides:
 - **Parameter Controls**: Adjust n_estimators, learning_rate, max_depth
 - **Training Controls**: Start/Stop training, clear logs
 - **Real-time Progress**: Live updates via WebSocket
-- **Metrics Display**: Accuracy, Precision, Recall, F1-Score
+- **Metrics Display**: Accuracy, Precision, Recall, F1-Score with improved visibility on dark background
 - **Loss Curves**: Real-time training loss visualization
 - **Feature Importance**: Charts showing which features matter most
+- **Stroke Prediction**: Interactive form to predict stroke risk for new patients
+- **Prediction Validation**: Clear error message if attempting to predict before training model
 
 ### Decision Boundary Visualization
-- **Real Boundaries**: See actual decision boundaries from trained models
-- **Iteration Progression**: Navigate through training iterations
-- **Auto-Play Mode**: Play button automatically cycles through all decision boundaries
+- **Real Boundaries**: See actual decision boundaries from trained models (matplotlib-generated PNGs)
+- **Iteration Progression**: Navigate through training iterations with smooth transitions
+- **Auto-Play Mode**: Play button automatically cycles through all decision boundaries (2-second intervals)
 - **Manual Navigation**: Previous/Next buttons and dot indicators for direct navigation
-- **Metadata Display**: View accuracy, iteration number, and data points
-- **Clean Visualization**: No overlapping text, optimized layout
+- **Metadata Display**: View accuracy, iteration number, data points, and algorithm type
+- **Clean Visualization**: No overlapping text, optimized layout with balanced class sampling
+- **Auto-Stop on Manual**: Auto-play stops when manually navigating, resumes on play button click
+- **Looping**: Carousel loops continuously when auto-playing
 
 ### Tree Visualization
 - **Interactive Trees**: Visualize individual decision trees
@@ -285,9 +292,10 @@ Each page provides:
 ### REST API (Backend)
 - `GET /` - API status and health check
 - `GET /algorithms` - List all available algorithms
-- `GET /dataset/preview?rows=10` - Get dataset preview
+- `GET /dataset/preview?rows=10&dataset={name}` - Get dataset preview
 - `POST /dataset/upload` - Upload new dataset (CSV)
-- `GET /plot/boosting-boundary?algorithm={alg}&n_estimators={n}` - Get decision boundary plot
+- `GET /plot/boosting-boundary?algorithm={alg}&n_estimators={n}` - Get decision boundary plot (base64 PNG)
+- `POST /predict` - Predict stroke risk for new patient data (requires trained model)
 
 ### WebSocket Events (Real-time)
 - `connect` - Client connects to server
@@ -365,11 +373,14 @@ This teaches:
 ## 🎯 Key Improvements Made
 
 ### Recent Updates (Latest)
-- **Auto-Play Features**: Added play buttons for decision boundary carousel and AdaBoost explanation
-- **Text Size Optimization**: Reduced decision tree text to 16px for proper fit within boxes
-- **Prediction Validation**: Added check to prevent predictions before model training
-- **Gradient Animations**: Applied animated gradient effects to all interactive buttons
-- **Improved UX**: Auto-play stops on manual navigation, resumes on play button click
+- **Auto-Play Features**: Added play buttons for decision boundary carousel (2s intervals) and AdaBoost explanation (4.5s intervals)
+- **Text Size Optimization**: Reduced decision tree text to 16px for proper fit within compact boxes (200-300px width, 60-80px height)
+- **Prediction Validation**: Added check to prevent predictions before model training with user-friendly error message
+- **Gradient Animations**: Applied animated gradient effects to all interactive buttons (play/pause, navigation, primary buttons)
+- **Improved UX**: Auto-play stops on manual navigation, resumes on play button click, loops continuously
+- **Decision Boundary Updates**: Integrated real matplotlib-generated decision boundaries with balanced visualization sampling
+- **Metrics Visibility**: Enhanced final metrics display with improved contrast and visibility on dark background
+- **Model Training Tracking**: Backend tracks training status to prevent invalid predictions
 
 ### Text Size Optimization
 - Increased base font size from 16px to 20px (25% larger)
@@ -378,9 +389,12 @@ This teaches:
 - Branch labels: Reduced to 18px for readability
 
 ### User Experience
-- **Auto-Play Features**: Added play buttons for decision boundary carousel and AdaBoost explanation slideshow
+- **Auto-Play Features**: Added play buttons for decision boundary carousel (2s intervals) and AdaBoost explanation slideshow (4.5s intervals)
 - **Smart Navigation**: Auto-play stops when manually navigating, resumes when play button is clicked
-- **Prediction Validation**: Clear error message when attempting to predict before training model
+- **Prediction Validation**: Clear error message ("Please train the model first before making predictions") when attempting to predict before training model
+- **Step Indicators**: Visual step indicators showing current position (e.g., "Step 1 / 6" for AdaBoost, "1 / 8" for decision boundaries)
+- **Auto-Stop**: AdaBoost auto-play automatically stops at the last step (Step 6)
+- **Looping**: Decision boundary carousel loops continuously when auto-playing
 - Removed comparison tab from Chapter 4 (cleaner interface)
 - Moved "REAL MODEL BOUNDARY" badge to metadata section (no overlap)
 - Improved search to navigate directly to algorithm tabs
@@ -389,7 +403,12 @@ This teaches:
 ### Visual Design
 - **Optimized Decision Tree**: Compact node boxes (200-300px width, 60-80px height) with readable text (16px)
 - **Proper Text Fit**: All text sizes reduced to fit comfortably within diagram boxes
-- **Animated Buttons**: Gradient animation effects on all interactive buttons
+  - Node text: 16px (reduced from 72px)
+  - Icons: 32px (reduced from 120px)
+  - Branch labels: 18px (reduced from 36px)
+  - Branch label ellipses: 30x20px (reduced from 50x35px)
+- **Animated Buttons**: Gradient animation effects on all interactive buttons (play/pause, navigation, primary actions)
+- **Metrics Display**: Enhanced visibility with improved contrast, borders, and shadows on dark background
 - Enhanced spacing and padding throughout
 - Better color contrast for readability
 
