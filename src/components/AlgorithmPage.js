@@ -619,11 +619,20 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
   const handlePredict = async () => {
     try {
       setError(null);
+      setPredictionResult(null); // Clear previous result
       const result = await apiService.predictStroke(predictionData);
       setPredictionResult(result);
       addLog(`Prediction: ${result.prediction_label} (Confidence: ${(result.confidence * 100).toFixed(1)}%)`, 'info');
     } catch (error) {
-      setError('Prediction failed: ' + error.message);
+      // Check if it's the "model not trained" error
+      if (error.message && error.message.includes("hasn't been trained")) {
+        setPredictionResult({
+          error: true,
+          message: "Please train the model first before making predictions."
+        });
+      } else {
+        setError('Prediction failed: ' + error.message);
+      }
       addLog(`Prediction failed: ${error.message}`, 'error');
     }
   };
@@ -1433,31 +1442,57 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
         {predictionResult && (
           <div className="chart-container" style={{ marginTop: '1rem' }}>
             <h3>Prediction Result</h3>
-            <div style={{ 
-              padding: '1rem', 
-              backgroundColor: predictionResult.prediction === 1 ? '#ffe6e6' : '#e6ffe6',
-              border: `2px solid ${predictionResult.prediction === 1 ? '#ff4444' : '#44ff44'}`,
-              borderRadius: '8px',
-              textAlign: 'center'
-            }}>
-              <h4 style={{ 
-                color: predictionResult.prediction === 1 ? '#d32f2f' : '#2e7d32',
-                margin: '0 0 1rem 0'
+            {predictionResult.error ? (
+              <div style={{ 
+                padding: '1.5rem', 
+                backgroundColor: '#fff3cd',
+                border: '2px solid #ffc107',
+                borderRadius: '8px',
+                textAlign: 'center'
               }}>
-                {predictionResult.prediction_label}
-              </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-                <div>
-                  <strong>No Stroke:</strong> {(predictionResult.probability_no_stroke * 100).toFixed(1)}%
+                <h4 style={{ 
+                  color: '#856404',
+                  margin: '0 0 0.5rem 0',
+                  fontSize: '1.2rem'
+                }}>
+                  <Icon name="alert" size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                  Model Not Trained
+                </h4>
+                <p style={{ 
+                  color: '#856404',
+                  margin: '0',
+                  fontSize: '1rem'
+                }}>
+                  {predictionResult.message}
+                </p>
+              </div>
+            ) : (
+              <div style={{ 
+                padding: '1rem', 
+                backgroundColor: predictionResult.prediction === 1 ? '#ffe6e6' : '#e6ffe6',
+                border: `2px solid ${predictionResult.prediction === 1 ? '#ff4444' : '#44ff44'}`,
+                borderRadius: '8px',
+                textAlign: 'center'
+              }}>
+                <h4 style={{ 
+                  color: predictionResult.prediction === 1 ? '#d32f2f' : '#2e7d32',
+                  margin: '0 0 1rem 0'
+                }}>
+                  {predictionResult.prediction_label}
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                  <div>
+                    <strong>No Stroke:</strong> {(predictionResult.probability_no_stroke * 100).toFixed(1)}%
+                  </div>
+                  <div>
+                    <strong>Stroke:</strong> {(predictionResult.probability_stroke * 100).toFixed(1)}%
+                  </div>
                 </div>
-                <div>
-                  <strong>Stroke:</strong> {(predictionResult.probability_stroke * 100).toFixed(1)}%
+                <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                  Confidence: {(predictionResult.confidence * 100).toFixed(1)}%
                 </div>
               </div>
-              <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
-                Confidence: {(predictionResult.confidence * 100).toFixed(1)}%
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>

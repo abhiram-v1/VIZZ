@@ -25,7 +25,7 @@ import {
   // Playback Controls
   FaPlay, FaPause, FaStepForward, FaStepBackward, FaRedoAlt,
   // Status indicators
-  FaCheck, FaTimes, FaCheckCircle, FaTimesCircle,
+  FaCheck, FaTimes, FaCheckCircle, FaTimesCircle, FaExclamationTriangle,
   // Lightbulb/Ideas
   FaLightbulb,
   // Other
@@ -106,6 +106,8 @@ export const Icons = {
   cross: FaTimes,
   checkCircle: FaCheckCircle,
   timesCircle: FaTimesCircle,
+  alert: FaExclamationTriangle,
+  warning: FaExclamationTriangle,
   
   // Ideas
   lightbulb: FaLightbulb,

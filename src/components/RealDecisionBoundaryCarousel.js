@@ -89,31 +89,6 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
     fetchRealBoundaries();
   }, [algorithm, trainingData, iterations]);
 
-  // Auto-advance when playing
-  useEffect(() => {
-    if (isPlaying && boundaries && boundaries.length > 0) {
-      playIntervalRef.current = setInterval(() => {
-        setCurrentIndex((prev) => {
-          const nextIndex = (prev + 1) % boundaries.length;
-          // Loop back to start when reaching the end
-          return nextIndex;
-        });
-      }, 1500); // Advance every 1.5 seconds
-    } else {
-      if (playIntervalRef.current) {
-        clearInterval(playIntervalRef.current);
-        playIntervalRef.current = null;
-      }
-    }
-
-    // Cleanup on unmount
-    return () => {
-      if (playIntervalRef.current) {
-        clearInterval(playIntervalRef.current);
-      }
-    };
-  }, [isPlaying, boundaries]);
-
   // Render decision boundaries to SVG or display PNG from backend
   useEffect(() => {
     if (!boundaries || !Array.isArray(boundaries) || boundaries.length === 0) return;
@@ -1017,27 +992,46 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
     });
   };
 
+  // Auto-play functionality
+  useEffect(() => {
+    if (isPlaying && boundaries && boundaries.length > 0) {
+      playIntervalRef.current = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % boundaries.length);
+      }, 2000); // Change slide every 2 seconds
+    } else {
+      if (playIntervalRef.current) {
+        clearInterval(playIntervalRef.current);
+        playIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (playIntervalRef.current) {
+        clearInterval(playIntervalRef.current);
+      }
+    };
+  }, [isPlaying, boundaries]);
+
+  const togglePlay = () => {
+    setIsPlaying((prev) => !prev);
+  };
+
   const nextBoundary = () => {
     if (!boundaries || boundaries.length === 0) return;
+    setIsPlaying(false); // Stop auto-play when manually navigating
     setCurrentIndex((prev) => (prev + 1) % boundaries.length);
   };
 
   const prevBoundary = () => {
     if (!boundaries || boundaries.length === 0) return;
+    setIsPlaying(false); // Stop auto-play when manually navigating
     setCurrentIndex((prev) => (prev - 1 + boundaries.length) % boundaries.length);
   };
 
   const goToBoundary = (index) => {
     if (!boundaries || boundaries.length === 0) return;
+    setIsPlaying(false); // Stop auto-play when manually navigating
     setCurrentIndex(index);
-    // Stop playing when user manually navigates
-    if (isPlaying) {
-      setIsPlaying(false);
-    }
-  };
-
-  const togglePlay = () => {
-    setIsPlaying((prev) => !prev);
   };
 
   if (!boundaries || !Array.isArray(boundaries) || boundaries.length === 0) {
@@ -1067,11 +1061,11 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
           </p>
         </div>
         <div className="header-controls">
-          <button 
-            className={`play-pause-btn ${isPlaying ? 'playing' : ''}`}
+          <button
+            className="play-pause-btn"
             onClick={togglePlay}
-            aria-label={isPlaying ? 'Pause' : 'Play'}
-            title={isPlaying ? 'Pause automatic slideshow' : 'Play automatic slideshow'}
+            aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
+            title={isPlaying ? 'Pause auto-play' : 'Start auto-play'}
           >
             <Icon name={isPlaying ? 'pause' : 'play'} size={20} />
           </button>
@@ -1086,10 +1080,7 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
       <div className="carousel-container">
         <button 
           className="carousel-nav-btn prev-btn"
-          onClick={() => {
-            prevBoundary();
-            if (isPlaying) setIsPlaying(false);
-          }}
+          onClick={prevBoundary}
           aria-label="Previous iteration"
         >
           <Icon name="previous" size={24} />
@@ -1150,10 +1141,7 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
 
         <button 
           className="carousel-nav-btn next-btn"
-          onClick={() => {
-            nextBoundary();
-            if (isPlaying) setIsPlaying(false);
-          }}
+          onClick={nextBoundary}
           aria-label="Next iteration"
         >
           <Icon name="next" size={24} />

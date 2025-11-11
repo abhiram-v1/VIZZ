@@ -616,6 +616,10 @@ body::before {
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
   margin-bottom: 2rem;
+  background: rgba(26, 26, 46, 0.6);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid rgba(96, 165, 250, 0.2);
 }
 
 .metrics-grid {
@@ -625,33 +629,51 @@ body::before {
 }
 
 .metric-card {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(30, 41, 59, 0.9);
   border-radius: 8px;
   padding: 1rem;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border-left: 4px solid #667eea;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  border-left: 4px solid #60a5fa;
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  background: rgba(30, 41, 59, 1);
+  border-color: #60a5fa;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(96, 165, 250, 0.4);
 }
 
 .metric-value {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 0.25rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
 }
 
 .metric-label {
-  color: #666;
+  color: #cbd5e1;
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .chart-container {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(30, 41, 59, 0.9);
   border-radius: 8px;
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.chart-container h3 {
+  color: #ffffff;
+  font-weight: 600;
+  margin-bottom: 1rem;
 }
 
 .feature-importance {
@@ -4696,73 +4718,65 @@ body::before {
   font-weight: 700;
 }
 
-.step-controls-wrapper {
+.adaboost-controls {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+  margin: 1rem 0;
 }
 
 .adaboost-play-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
-  border: none;
-  border-radius: 12px;
-  color: white;
+  justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 0.95rem;
-  font-weight: 600;
-  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  color: white;
 }
 
 .adaboost-play-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.6);
-  background: linear-gradient(135deg, #00e5ff 0%, #00b3d9 100%);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  animation-duration: 1.5s;
 }
 
 .adaboost-play-btn:active {
-  transform: translateY(0);
-}
-
-.adaboost-play-btn.playing {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-}
-
-.adaboost-play-btn.playing:hover {
-  background: linear-gradient(135deg, #ff7b7b 0%, #ff6a7f 100%);
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+  transform: scale(0.95);
 }
 
 .step-indicator {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 0.75rem 1.25rem;
-  border-radius: 12px;
+  padding: 10px 20px;
+  border-radius: 25px;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
 .step-indicator .current-step {
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #FFD700;
   text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 .step-indicator .separator {
-  font-size: 1rem;
+  font-size: 1.2rem;
   color: rgba(255, 255, 255, 0.7);
 }
 
 .step-indicator .total-steps {
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: white;
 }
@@ -9319,15 +9333,17 @@ body::before {
 }
 
 .play-pause-btn {
-  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 50%, #00d4ff 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
   border: none;
+  border-radius: 50%;
   width: 50px;
   height: 50px;
-  border-radius: 50%;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
   color: white;
@@ -9336,21 +9352,16 @@ body::before {
 .play-pause-btn:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 20px rgba(0, 212, 255, 0.6);
-  background: linear-gradient(135deg, #00e5ff 0%, #00b3d9 100%);
+  animation-duration: 1.5s;
 }
 
 .play-pause-btn:active {
   transform: scale(0.95);
 }
 
-.play-pause-btn.playing {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-}
-
-.play-pause-btn.playing:hover {
-  background: linear-gradient(135deg, #ff7b7b 0%, #ff6a7f 100%);
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+.play-pause-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .iteration-indicator {
@@ -9625,6 +9636,10 @@ body::before {
     font-size: 1.5rem;
   }
 
+  .header-description {
+    font-size: 0.95rem;
+  }
+
   .header-controls {
     flex-direction: column;
     gap: 10px;
@@ -9637,8 +9652,8 @@ body::before {
     height: 45px;
   }
 
-  .header-description {
-    font-size: 0.95rem;
+  .iteration-indicator {
+    padding: 10px 20px;
   }
 
   .carousel-container {

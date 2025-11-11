@@ -239,22 +239,9 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         if data_store['X_train'] is None or data_store['y_train'] is None:
             raise Exception("No dataset loaded. Please load a dataset first.")
         
-        # Get the actual training data (this is already the sampled subset if n_samples was specified)
+        # Get the actual training data
         X_train = data_store['X_train']
         y_train = data_store['y_train']
-        
-        # CRITICAL: Verify we're using sampled data, not full dataset
-        if X_train is None or y_train is None:
-            raise Exception("No training data available in data_store")
-        
-        training_size = len(X_train)
-        print(f"DEBUG: Decision boundary using {training_size} training samples")
-        
-        # If we have more than 1000 samples, something is wrong - we should be using sampled data
-        if training_size > 1000:
-            print(f"ERROR: Decision boundary has {training_size} samples - this looks like the FULL dataset!")
-            print(f"Expected sampled subset. The visualization will show incorrect data.")
-            raise Exception(f"Data store contains {training_size} samples - expected sampled subset. Check if n_samples was applied correctly.")
         
         # Select two features for visualization
         feature_names = data_store.get('feature_names', [])
@@ -275,21 +262,15 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
             X_2d = X_train.iloc[:, [0, 1]].values
             x_label, y_label = feature_names[0], feature_names[1]
         
-        # Get labels (these are already from the sampled subset)
+        # Get labels
         y_labels = y_train.values
         
-        # IMPORTANT: X_train and y_train already contain only the sampled data points
-        # So we use ALL of them for visualization (no further sampling needed for small datasets)
-        
-        # Verify we're using the sampled data
-        if len(X_2d) > 1000:
-            print(f"WARNING: Decision boundary using {len(X_2d)} samples - this seems like full dataset!")
-            print(f"Expected sampled subset. Check if n_samples was applied correctly.")
-        
-        # Train a model on the sampled training data
+        # IMPORTANT: Model trains on ALL data (no sampling limit)
+        # This allows training with any number of samples for better decision boundaries
+        # Train a simple model
         from sklearn.ensemble import AdaBoostClassifier
         model = AdaBoostClassifier(n_estimators=n_estimators, random_state=42)
-        model.fit(X_2d, y_labels)  # Uses the sampled training samples from data_store
+        model.fit(X_2d, y_labels)  # Uses all available training samples
         
         # Create a grid for decision boundary
         h = 0.5
@@ -308,22 +289,17 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         ax.contourf(xx, yy, Z, alpha=0.4, cmap=cmap_light)
         ax.contour(xx, yy, Z, colors='#ffffff', linewidths=3, alpha=0.9)
         
-        # Plot ALL the actual training data points (no sampling for small datasets)
+        # Plot the actual data points
+        # For large datasets, sample points for visualization clarity, but train on all data
         stroke_points = X_2d[y_labels == 1]
         no_stroke_points = X_2d[y_labels == 0]
         
-        # For small datasets (< 100 points), show all points
-        # For larger datasets, sample for visualization clarity
-        total_points = len(X_2d)
-        if total_points <= 100:
-            # Show all points for small datasets
-            stroke_points_viz = stroke_points
-            no_stroke_points_viz = no_stroke_points
-        else:
-            # For larger datasets, sample for visualization
+        # Balance visualization samples - take equal numbers from each class
+        # This ensures good visualization even with imbalanced original data
         max_viz_points = 2000
         min_class_viz = min(len(stroke_points), len(no_stroke_points), max_viz_points)
         
+        # Sample equal numbers from each class for balanced visualization
         if len(stroke_points) > min_class_viz:
             stroke_points_viz = stroke_points[np.random.choice(len(stroke_points), min_class_viz, replace=False)]
         else:
@@ -334,22 +310,19 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         else:
             no_stroke_points_viz = no_stroke_points
         
-        # Show ALL training points (these are already the sampled subset if n_samples was specified)
-        # For small datasets, show all points; for larger ones, we already sampled above
-        total_training_points = len(X_2d)
+        # Ensure balanced visualization (same count for both classes)
+        final_viz_count = min(len(stroke_points_viz), len(no_stroke_points_viz))
+        if len(stroke_points_viz) > final_viz_count:
+            stroke_points_viz = stroke_points_viz[np.random.choice(len(stroke_points_viz), final_viz_count, replace=False)]
+        if len(no_stroke_points_viz) > final_viz_count:
+            no_stroke_points_viz = no_stroke_points_viz[np.random.choice(len(no_stroke_points_viz), final_viz_count, replace=False)]
+        
         ax.scatter(no_stroke_points_viz[:, 0], no_stroke_points_viz[:, 1], 
-                  c='#f87171', label=f'No Stroke ({len(no_stroke_points_viz)} points)', 
+                  c='#f87171', label=f'No Stroke (showing {len(no_stroke_points_viz)} of {len(no_stroke_points)})', 
                   alpha=0.9, s=60, edgecolors='#ffffff', linewidth=1.5)
         ax.scatter(stroke_points_viz[:, 0], stroke_points_viz[:, 1], 
-                  c='#4ade80', label=f'Stroke ({len(stroke_points_viz)} points)', 
+                  c='#4ade80', label=f'Stroke (showing {len(stroke_points_viz)} of {len(stroke_points)})', 
                   alpha=0.9, s=60, edgecolors='#ffffff', linewidth=1.5)
-        
-        # Add info text showing total training samples used
-        info_text = f'Total Training Samples: {total_training_points}'
-        ax.text(0.02, 0.98, info_text, transform=ax.transAxes, 
-                fontsize=10, verticalalignment='top',
-                bbox=dict(boxstyle='round', facecolor='rgba(0,0,0,0.7)', alpha=0.8, edgecolor='white'),
-                color='white', weight='bold')
         
         # Labels and title with bright colors
         ax.set_xlabel(x_label, fontsize=12, fontweight='bold', color='#ffffff')
@@ -516,7 +489,10 @@ data_store = {
     'feature_names': None,
     'categorical_features': None,
     'numerical_features': None,
-    'dataset': None
+    'dataset': None,
+    'model_trained': False,  # Track if a model has been trained
+    'trained_model': None,  # Store the trained model
+    'trained_algorithm': None  # Store which algorithm was trained
 }
 
 # Socket.IO server
@@ -798,9 +774,9 @@ async def get_dataset_preview(rows: int = 10, dataset: str = "stroke"):
             raise HTTPException(status_code=404, detail=f"Dataset '{dataset}' not found")
         
         preview = df.head(rows)
-    return {
-        "data": preview.to_dict('records'),
-        "columns": preview.columns.tolist(),
+        return {
+            "data": preview.to_dict('records'),
+            "columns": preview.columns.tolist(),
             "shape": df.shape,
             "dataset_name": dataset
         }
@@ -856,14 +832,15 @@ def load_dataset_for_training(dataset_name: str, n_samples: int = None):
         data_store['X_test'] = None
         data_store['y_train'] = None
         data_store['y_test'] = None
-        data_store['dataset'] = None
+        data_store['model_trained'] = False
+        data_store['trained_model'] = None
+        data_store['trained_algorithm'] = None
         
         df = load_dataset_by_name(dataset_name)
         if df is None:
             return False
         
         print(f"Loading dataset '{dataset_name}' with n_samples={n_samples}")
-        print(f"Full dataset shape: {df.shape}")
         
         if dataset_name == "stroke":
             # Stroke dataset processing
@@ -892,14 +869,10 @@ def load_dataset_for_training(dataset_name: str, n_samples: int = None):
                     samples_per_class = n_samples // 2
                     # Don't exceed available samples per class
                     samples_per_class = min(samples_per_class, min_class_size)
-                    print(f"Sampling {samples_per_class} samples per class (total requested: {n_samples})")
                     if samples_per_class > 0:
-                        # Use a fixed random seed for reproducibility, but different from default
-                        np.random.seed(42 + hash(str(n_samples)) % 1000)  # Different seed for different n_samples
                         balanced_stroke_indices = np.random.choice(stroke_indices, samples_per_class, replace=False)
                         balanced_no_stroke_indices = np.random.choice(no_stroke_indices, samples_per_class, replace=False)
                         balanced_indices = np.concatenate([balanced_stroke_indices, balanced_no_stroke_indices])
-                        print(f"Selected {len(balanced_indices)} total samples ({samples_per_class} from each class)")
                     else:
                         balanced_indices = np.concatenate([stroke_indices, no_stroke_indices])
                 else:
@@ -908,19 +881,9 @@ def load_dataset_for_training(dataset_name: str, n_samples: int = None):
                     balanced_no_stroke_indices = np.random.choice(no_stroke_indices, min_class_size, replace=False)
                     balanced_indices = np.concatenate([balanced_stroke_indices, balanced_no_stroke_indices])
             
-            # Reset random seed for consistent shuffling
-            np.random.seed(42)
             np.random.shuffle(balanced_indices)
             X_balanced = X_encoded.loc[balanced_indices].reset_index(drop=True)
             y_balanced = y.loc[balanced_indices].reset_index(drop=True)
-            
-            # CRITICAL CHECK: Verify we have the right number of samples
-            if n_samples and len(X_balanced) != n_samples:
-                print(f"WARNING: Expected {n_samples} samples but got {len(X_balanced)}!")
-                print(f"This might cause the visualization to show wrong data!")
-            
-            # Log the balanced dataset size BEFORE train_test_split
-            print(f"BEFORE train_test_split: {len(X_balanced)} balanced samples (n_samples={n_samples}, {y_balanced.sum()} stroke, {len(y_balanced) - y_balanced.sum()} no-stroke)")
             
             # For small datasets, adjust test_size to ensure we have enough training data
             # If n_samples was specified, we already have the right amount
@@ -935,8 +898,8 @@ def load_dataset_for_training(dataset_name: str, n_samples: int = None):
             )
             
             # Log the actual sizes for debugging
-            print(f"AFTER train_test_split - Training set size: {len(X_train)} samples ({y_train.sum()} stroke, {len(y_train) - y_train.sum()} no-stroke)")
-            print(f"AFTER train_test_split - Test set size: {len(X_test)} samples ({y_test.sum()} stroke, {len(y_test) - y_test.sum()} no-stroke)")
+            print(f"Training set size: {len(X_train)} samples ({y_train.sum()} stroke, {len(y_train) - y_train.sum()} no-stroke)")
+            print(f"Test set size: {len(X_test)} samples ({y_test.sum()} stroke, {len(y_test) - y_test.sum()} no-stroke)")
             
             # IMPORTANT: Only store the sampled training/test data, NOT the full dataset
             data_store.update({
@@ -1047,13 +1010,6 @@ async def get_decision_boundary_plot(stage: str = "initial"):
 async def get_boosting_decision_boundary(algorithm: str = "adaboost", n_estimators: int = 1):
     """Generate 2D decision boundary plots for boosting algorithms showing improvement"""
     try:
-        # Verify we have training data loaded
-        if data_store['X_train'] is None or data_store['y_train'] is None:
-            raise HTTPException(status_code=400, detail="No training data loaded. Please start training first.")
-        
-        # Log what we're using
-        print(f"API: Generating boundary plot with {len(data_store['X_train'])} training samples")
-        
         # Determine stage based on n_estimators
         if n_estimators <= 2:
             stage = "early"
@@ -1062,7 +1018,7 @@ async def get_boosting_decision_boundary(algorithm: str = "adaboost", n_estimato
         else:
             stage = "late"
         
-        # Generate the boosting decision boundary plot (uses current data_store['X_train'])
+        # Generate the boosting decision boundary plot
         plot_data = generate_boosting_decision_boundary(algorithm, n_estimators, stage)
         
         if plot_data is None:
@@ -1073,8 +1029,7 @@ async def get_boosting_decision_boundary(algorithm: str = "adaboost", n_estimato
             "algorithm": algorithm,
             "n_estimators": n_estimators,
             "stage": stage,
-            "type": "2D",
-            "training_samples": len(data_store['X_train'])  # Include info about samples used
+            "type": "2D"
         }
         
     except Exception as e:
@@ -1298,6 +1253,10 @@ async def upload_dataset(file: UploadFile = File(...)):
 async def predict_stroke(data: Dict[str, Any]):
     """Predict stroke for synthetic data based on dataset features"""
     try:
+        # Check if a model has been trained
+        if not data_store.get('model_trained', False):
+            raise HTTPException(status_code=400, detail="Model hasn't been trained yet. Please train a model first before making predictions.")
+        
         if data_store['X_train'] is None:
             raise HTTPException(status_code=404, detail="No dataset loaded")
         
@@ -1755,7 +1714,16 @@ async def train_gradient_boosting(params: Dict, tracker: ProgressTracker):
                         'weight': learning_rate  # Use learning rate as weight for GB
                     }
         
-        await tracker.emit_progress(i, loss=train_loss, metrics={'accuracy': val_accuracy}, tree_info=tree_info)
+        # Generate decision boundary plot for key stages
+        decision_boundary_plot = None
+        if i == 10 or i == 30 or i == 60 or i == n_estimators:
+            try:
+                decision_boundary_plot = generate_boosting_decision_boundary("gradient_boosting", i, "early" if i <= 30 else "mid" if i <= 60 else "late")
+            except Exception as e:
+                print(f"Error generating decision boundary: {e}")
+                decision_boundary_plot = None
+        
+        await tracker.emit_progress(i, loss=train_loss, metrics={'accuracy': val_accuracy}, tree_info=tree_info, decision_boundary=decision_boundary_plot)
     
     # Also emit progress for the final model if n_estimators is not divisible by 10
     if n_estimators % 10 != 0:
@@ -1775,7 +1743,16 @@ async def train_gradient_boosting(params: Dict, tracker: ProgressTracker):
         val_accuracy = accuracy_score(y_test, val_pred)
         
         loss_history.append(train_loss)
-        await tracker.emit_progress(n_estimators, loss=train_loss, metrics={'accuracy': val_accuracy})
+        
+        # Generate decision boundary for final model
+        decision_boundary_plot = None
+        try:
+            decision_boundary_plot = generate_boosting_decision_boundary("gradient_boosting", n_estimators, "late")
+        except Exception as e:
+            print(f"Error generating decision boundary: {e}")
+            decision_boundary_plot = None
+        
+        await tracker.emit_progress(n_estimators, loss=train_loss, metrics={'accuracy': val_accuracy}, decision_boundary=decision_boundary_plot)
     
     # Create the final model
     model = GradientBoostingClassifier(
@@ -1798,7 +1775,14 @@ async def train_gradient_boosting(params: Dict, tracker: ProgressTracker):
         'f1_score': f1_score(y_test, y_pred)
     }
     
-    await tracker.emit_progress(n_estimators, metrics=final_metrics)
+    # Generate final decision boundary
+    final_decision_boundary = None
+    try:
+        final_decision_boundary = generate_boosting_decision_boundary("gradient_boosting", n_estimators, "late")
+    except Exception as e:
+        print(f"Error generating final decision boundary: {e}")
+    
+    await tracker.emit_progress(n_estimators, metrics=final_metrics, decision_boundary=final_decision_boundary)
     return model, final_metrics
 
 async def train_xgboost(params: Dict, tracker: ProgressTracker):
@@ -1841,7 +1825,18 @@ async def train_xgboost(params: Dict, tracker: ProgressTracker):
         if i % 5 == 0 or i == len(train_loss) - 1:
             val_pred = model.predict(X_test)
             val_accuracy = accuracy_score(y_test, val_pred)
-            await tracker.emit_progress(i + 1, loss=val_loss[i], metrics={'accuracy': val_accuracy})
+            
+            # Generate decision boundary plot for key stages
+            decision_boundary_plot = None
+            iteration_num = i + 1
+            if iteration_num == 1 or iteration_num == 20 or iteration_num == 50 or iteration_num == len(train_loss):
+                try:
+                    decision_boundary_plot = generate_boosting_decision_boundary("xgboost", iteration_num, "early" if iteration_num <= 20 else "mid" if iteration_num <= 50 else "late")
+                except Exception as e:
+                    print(f"Error generating decision boundary: {e}")
+                    decision_boundary_plot = None
+            
+            await tracker.emit_progress(iteration_num, loss=val_loss[i], metrics={'accuracy': val_accuracy}, decision_boundary=decision_boundary_plot)
     
     # Final evaluation
     y_pred = model.predict(X_test)
@@ -1852,6 +1847,14 @@ async def train_xgboost(params: Dict, tracker: ProgressTracker):
         'f1_score': f1_score(y_test, y_pred)
     }
     
+    # Generate final decision boundary
+    final_decision_boundary = None
+    try:
+        final_decision_boundary = generate_boosting_decision_boundary("xgboost", n_estimators, "late")
+    except Exception as e:
+        print(f"Error generating final decision boundary: {e}")
+    
+    await tracker.emit_progress(n_estimators, metrics=final_metrics, decision_boundary=final_decision_boundary)
     return model, final_metrics
 
 async def train_lightgbm(params: Dict, tracker: ProgressTracker):
@@ -1866,6 +1869,35 @@ async def train_lightgbm(params: Dict, tracker: ProgressTracker):
     learning_rate = params.get('learning_rate', 0.1)
     max_depth = params.get('max_depth', 3)
     
+    tracker.total_iters = n_estimators
+    
+    # Train incrementally for progress tracking
+    for i in range(10, n_estimators + 1, 10):
+        temp_model = lgb.LGBMClassifier(
+            n_estimators=i,
+            learning_rate=learning_rate,
+            max_depth=max_depth,
+            random_state=42,
+            verbose=-1
+        )
+        temp_model.fit(X_train, y_train)
+        
+        val_pred = temp_model.predict(X_test)
+        val_accuracy = accuracy_score(y_test, val_pred)
+        train_loss = 1.0 - accuracy_score(y_train, temp_model.predict(X_train))
+        
+        # Generate decision boundary plot for key stages
+        decision_boundary_plot = None
+        if i == 10 or i == 30 or i == 60 or i == n_estimators:
+            try:
+                decision_boundary_plot = generate_boosting_decision_boundary("lightgbm", i, "early" if i <= 30 else "mid" if i <= 60 else "late")
+            except Exception as e:
+                print(f"Error generating decision boundary: {e}")
+                decision_boundary_plot = None
+        
+        await tracker.emit_progress(i, loss=train_loss, metrics={'accuracy': val_accuracy}, decision_boundary=decision_boundary_plot)
+    
+    # Create final model
     model = lgb.LGBMClassifier(
         n_estimators=n_estimators,
         learning_rate=learning_rate,
@@ -1873,16 +1905,7 @@ async def train_lightgbm(params: Dict, tracker: ProgressTracker):
         random_state=42,
         verbose=-1
     )
-    
-    tracker.total_iters = n_estimators
-    
-    # Train with evaluation set
-    eval_set = [(X_train, y_train), (X_test, y_test)]
-    model.fit(
-        X_train, y_train,
-        eval_set=eval_set,
-        callbacks=[lgb.early_stopping(stopping_rounds=10, verbose=False)]
-    )
+    model.fit(X_train, y_train)
     
     # Get feature importance and final metrics
     y_pred = model.predict(X_test)
@@ -1893,8 +1916,15 @@ async def train_lightgbm(params: Dict, tracker: ProgressTracker):
         'f1_score': f1_score(y_test, y_pred)
     }
     
+    # Generate final decision boundary
+    final_decision_boundary = None
+    try:
+        final_decision_boundary = generate_boosting_decision_boundary("lightgbm", n_estimators, "late")
+    except Exception as e:
+        print(f"Error generating final decision boundary: {e}")
+    
     # Emit final results
-    await tracker.emit_progress(n_estimators, metrics=final_metrics)
+    await tracker.emit_progress(n_estimators, metrics=final_metrics, decision_boundary=final_decision_boundary)
     return model, final_metrics
 
 async def train_catboost(params: Dict, tracker: ProgressTracker):
@@ -1909,6 +1939,35 @@ async def train_catboost(params: Dict, tracker: ProgressTracker):
     learning_rate = params.get('learning_rate', 0.1)
     max_depth = params.get('max_depth', 3)
     
+    tracker.total_iters = n_estimators
+    
+    # Train incrementally for progress tracking
+    for i in range(10, n_estimators + 1, 10):
+        temp_model = cb.CatBoostClassifier(
+            iterations=i,
+            learning_rate=learning_rate,
+            depth=max_depth,
+            random_seed=42,
+            verbose=False
+        )
+        temp_model.fit(X_train, y_train)
+        
+        val_pred = temp_model.predict(X_test)
+        val_accuracy = accuracy_score(y_test, val_pred)
+        train_loss = 1.0 - accuracy_score(y_train, temp_model.predict(X_train))
+        
+        # Generate decision boundary plot for key stages
+        decision_boundary_plot = None
+        if i == 10 or i == 30 or i == 60 or i == n_estimators:
+            try:
+                decision_boundary_plot = generate_boosting_decision_boundary("catboost", i, "early" if i <= 30 else "mid" if i <= 60 else "late")
+            except Exception as e:
+                print(f"Error generating decision boundary: {e}")
+                decision_boundary_plot = None
+        
+        await tracker.emit_progress(i, loss=train_loss, metrics={'accuracy': val_accuracy}, decision_boundary=decision_boundary_plot)
+    
+    # Create final model
     model = cb.CatBoostClassifier(
         iterations=n_estimators,
         learning_rate=learning_rate,
@@ -1916,10 +1975,6 @@ async def train_catboost(params: Dict, tracker: ProgressTracker):
         random_seed=42,
         verbose=False
     )
-    
-    tracker.total_iters = n_estimators
-    
-    # Train with evaluation set
     model.fit(
         X_train, y_train,
         eval_set=(X_test, y_test),
@@ -1935,8 +1990,15 @@ async def train_catboost(params: Dict, tracker: ProgressTracker):
         'f1_score': f1_score(y_test, y_pred)
     }
     
+    # Generate final decision boundary
+    final_decision_boundary = None
+    try:
+        final_decision_boundary = generate_boosting_decision_boundary("catboost", n_estimators, "late")
+    except Exception as e:
+        print(f"Error generating final decision boundary: {e}")
+    
     # Emit final results
-    await tracker.emit_progress(n_estimators, metrics=final_metrics)
+    await tracker.emit_progress(n_estimators, metrics=final_metrics, decision_boundary=final_decision_boundary)
     return model, final_metrics
 
 # Socket.IO event handlers
@@ -1958,6 +2020,11 @@ async def start_training(sid, data):
         dataset_name = data.get('dataset', 'stroke')  # Default to stroke if not specified
         n_samples = params.get('n_samples', None)  # Get number of samples to use
         
+        # Reset training flag when starting new training
+        data_store['model_trained'] = False
+        data_store['trained_model'] = None
+        data_store['trained_algorithm'] = None
+        
         # Load the requested dataset for training with specified number of samples
         if not load_dataset_for_training(dataset_name, n_samples):
             await sio.emit('error', {'message': f'Failed to load dataset: {dataset_name}'}, room=sid)
@@ -1966,12 +2033,6 @@ async def start_training(sid, data):
         if data_store['X_train'] is None:
             await sio.emit('error', {'message': 'No dataset loaded'}, room=sid)
             return
-        
-        # CRITICAL: Verify the data_store was updated with sampled data
-        actual_training_size = len(data_store['X_train'])
-        print(f"TRAINING START: data_store['X_train'] has {actual_training_size} samples")
-        if n_samples and actual_training_size > n_samples * 1.5:  # Allow some margin for train_test_split
-            print(f"WARNING: Expected ~{n_samples} samples but got {actual_training_size} - data_store may not be updated correctly!")
         
         tracker = ProgressTracker(algorithm, sid)
         
@@ -2017,6 +2078,11 @@ async def start_training(sid, data):
                 'total_iterations': params.get('n_estimators', 50)
             }
             completion_data = convert_numpy_types(completion_data)
+            
+            # Mark model as trained
+            data_store['model_trained'] = True
+            data_store['trained_model'] = model
+            data_store['trained_algorithm'] = algorithm
             
             await sio.emit('training_completed', completion_data, room=sid)
             

@@ -31,6 +31,8 @@ This application serves two main purposes:
 - **Real Decision Boundaries**: Visualize actual decision boundaries from trained models
 - **Iterative Progression**: See how decision boundaries evolve through training iterations
 - **Carousel Navigation**: Browse through different iterations of the decision boundary
+- **Auto-Play Slideshow**: Play button automatically advances through decision boundaries (2-second intervals)
+- **Manual Control**: Pause/play and navigate manually with previous/next buttons
 - **Dark Theme**: Beautiful dark-themed visualizations optimized for readability
 - **Real Model Integration**: Fetches actual decision boundaries from backend API
 
@@ -194,8 +196,9 @@ python start_servers.py
 5. **Chapter 5**: Run experiments and compare algorithm performance
 
 ### Interactive Elements
-- **Decision Tree Diagram**: Large, interactive visualization showing decision-making process
-- **AdaBoost Steps**: Click through step-by-step AdaBoost training process
+- **Decision Tree Diagram**: Compact, readable visualization showing decision-making process with optimized text sizes
+- **AdaBoost Steps**: Auto-play slideshow (4.5 seconds per step) or manually navigate through step-by-step AdaBoost training process
+- **Play Button**: Start auto-play to automatically advance through AdaBoost explanation steps
 - **Algorithm Tabs**: Switch between Overview, AdaBoost, Gradient Boosting, and XGBoost explanations
 - **Search Results**: Click any search result to navigate directly to that section
 
@@ -221,6 +224,8 @@ Each page provides:
 ### Decision Boundary Visualization
 - **Real Boundaries**: See actual decision boundaries from trained models
 - **Iteration Progression**: Navigate through training iterations
+- **Auto-Play Mode**: Play button automatically cycles through all decision boundaries
+- **Manual Navigation**: Previous/Next buttons and dot indicators for direct navigation
 - **Metadata Display**: View accuracy, iteration number, and data points
 - **Clean Visualization**: No overlapping text, optimized layout
 
@@ -240,10 +245,10 @@ Each page provides:
 
 ### Text Sizes
 - **Base Font**: 20px (25% larger than standard)
-- **Decision Tree Text**: 72px inside boxes, 100px icons
+- **Decision Tree Text**: 16px inside boxes (optimized for fit), 32px icons
 - **Diagram Text**: 20-32px for axis labels and titles
-- **Branch Labels**: 36px for Yes/No indicators
-- **All text optimized**: Every text element sized for maximum readability
+- **Branch Labels**: 18px for Yes/No indicators
+- **All text optimized**: Every text element sized for maximum readability and proper fit within diagram boxes
 
 ### Responsive Design
 - **Mobile Friendly**: Adapts to different screen sizes
@@ -314,12 +319,18 @@ Each page provides:
 ## 📖 Educational Content Explained
 
 ### Decision Tree Example
-The application uses a simple, relatable example:
+The application uses a simple, relatable example with an optimized, readable visualization:
 - **Question**: "Is it raining?"
   - **If Yes**: "Do we have umbrella?"
     - **If Yes**: "Go out" 🚶
     - **If No**: "Don't go" 🏠
   - **If No**: "Go out" 🚶
+
+**Visual Features**:
+- Compact node boxes with properly sized text (16px)
+- Clear branch labels (Yes/No) with readable font (18px)
+- Icons sized appropriately (32px) for visual balance
+- All text fits comfortably within diagram elements
 
 This example teaches:
 - How decision trees ask questions
@@ -327,11 +338,18 @@ This example teaches:
 - How final outcomes are reached
 
 ### AdaBoost Explanation
-The app explains AdaBoost through a "student learning" analogy:
-- **Student 1**: Makes initial attempt, gets some right, some wrong
-- **Student 2**: Focuses on problems Student 1 got wrong
-- **Student 3**: Fixes remaining mistakes from Students 1 & 2
-- **Final Result**: All students vote on the final answer
+The app explains AdaBoost through a "student learning" analogy with an interactive slideshow:
+- **Step 1**: Initial setup - all students start with equal weights
+- **Step 2**: First tree makes predictions on the dataset
+- **Step 3**: Weight update - increase weights for misclassified examples
+- **Step 4**: Second tree focuses on previously misclassified examples
+- **Step 5**: Final ensemble combines all trees with weighted voting
+- **Step 6**: Result - improved accuracy through adaptive boosting
+
+**Interactive Features**:
+- **Auto-Play**: Play button automatically advances through steps (4.5 seconds per step)
+- **Manual Navigation**: Previous/Next buttons for step-by-step exploration
+- **Step Indicator**: Shows current step (e.g., "Step 1 / 6")
 
 This teaches:
 - Adaptive learning (focusing on mistakes)
@@ -346,21 +364,32 @@ This teaches:
 
 ## 🎯 Key Improvements Made
 
+### Recent Updates (Latest)
+- **Auto-Play Features**: Added play buttons for decision boundary carousel and AdaBoost explanation
+- **Text Size Optimization**: Reduced decision tree text to 16px for proper fit within boxes
+- **Prediction Validation**: Added check to prevent predictions before model training
+- **Gradient Animations**: Applied animated gradient effects to all interactive buttons
+- **Improved UX**: Auto-play stops on manual navigation, resumes on play button click
+
 ### Text Size Optimization
 - Increased base font size from 16px to 20px (25% larger)
-- Decision tree text: 72px (was 19px, now 3.8x larger)
-- All diagram text increased by 25-30%
-- Icons increased to 100-120px for better visibility
+- Decision tree text: Optimized to 16px for proper fit within compact boxes
+- Icons: Sized to 32px for visual balance
+- Branch labels: Reduced to 18px for readability
 
 ### User Experience
+- **Auto-Play Features**: Added play buttons for decision boundary carousel and AdaBoost explanation slideshow
+- **Smart Navigation**: Auto-play stops when manually navigating, resumes when play button is clicked
+- **Prediction Validation**: Clear error message when attempting to predict before training model
 - Removed comparison tab from Chapter 4 (cleaner interface)
 - Moved "REAL MODEL BOUNDARY" badge to metadata section (no overlap)
 - Improved search to navigate directly to algorithm tabs
 - Simplified decision tree (removed windy branch, kept rain/umbrella)
 
 ### Visual Design
-- Larger decision tree diagram (2000x1200px viewBox)
-- Bigger node boxes (350-500px width, 110-130px height)
+- **Optimized Decision Tree**: Compact node boxes (200-300px width, 60-80px height) with readable text (16px)
+- **Proper Text Fit**: All text sizes reduced to fit comfortably within diagram boxes
+- **Animated Buttons**: Gradient animation effects on all interactive buttons
 - Enhanced spacing and padding throughout
 - Better color contrast for readability
 
@@ -407,9 +436,9 @@ pip install --upgrade -r backend/requirements.txt
 - **State Management**: React hooks (useState, useEffect) for state
 
 ### Key Components
-- **MLLearningJourneyPage**: Main educational journey (2000+ lines)
-- **RealDecisionBoundaryCarousel**: Decision boundary visualization with carousel
-- **AlgorithmPage**: Reusable algorithm training interface
+- **MLLearningJourneyPage**: Main educational journey (2000+ lines) with AdaBoost auto-play slideshow
+- **RealDecisionBoundaryCarousel**: Decision boundary visualization with auto-play carousel
+- **AlgorithmPage**: Reusable algorithm training interface with prediction validation
 - **TreeVisualizationPage**: Interactive decision tree visualization
 
 ### Styling Approach
