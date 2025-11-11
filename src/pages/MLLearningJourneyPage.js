@@ -12,6 +12,8 @@ const MLLearningJourneyPage = () => {
   const [animationStep, setAnimationStep] = useState(0);
   const [activeBoostingTab, setActiveBoostingTab] = useState('overview'); // 'overview', 'adaboost', 'gradient', 'xgboost'
   const [adaboostStep, setAdaboostStep] = useState(0); // For AdaBoost step navigation
+  const [isAdaboostPlaying, setIsAdaboostPlaying] = useState(false); // For auto-playing AdaBoost steps
+  const adaboostPlayIntervalRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -433,15 +435,16 @@ const MLLearningJourneyPage = () => {
           .style("filter", "drop-shadow(0 2px 4px rgba(102, 126, 234, 0.4))");
       });
 
-    // Calculate node dimensions - larger boxes with better spacing
+    // Calculate node dimensions - fit text properly within boxes
     const getNodeWidth = (text) => {
-      const baseWidth = 300;
-      const minWidth = 350;
-      const charWidth = 15;
-      return Math.max(minWidth, Math.min(baseWidth + text.length * charWidth, 500));
+      const baseWidth = 200;
+      const minWidth = 180;
+      const charWidth = 8; // Reduced character width for smaller font
+      const maxWidth = 280; // Maximum width to keep boxes reasonable
+      return Math.max(minWidth, Math.min(baseWidth + text.length * charWidth, maxWidth));
     };
 
-    const getNodeHeight = (hasIcon) => hasIcon ? 130 : 110;
+    const getNodeHeight = (hasIcon) => hasIcon ? 90 : 70;
 
     // Nodes - for vertical tree, swap x and y coordinates
     const node = svg.selectAll(".node")
@@ -496,26 +499,77 @@ const MLLearningJourneyPage = () => {
       if (d.data.icon) {
         nodeGroup.append("text")
           .attr("text-anchor", "middle")
-          .attr("dy", -20)
-          .attr("font-size", "120px")
-          .style("font-size", "120px")
+          .attr("dy", -15)
+          .attr("font-size", "32px")
+          .style("font-size", "32px")
           .text(d.data.icon);
       }
 
-      // Add text - much larger font size with better styling and shadow
-      nodeGroup.append("text")
+      // Add text - properly sized to fit within boxes
+      const textElement = nodeGroup.append("text")
         .attr("text-anchor", "middle")
-        .attr("dy", d.data.icon ? 35 : 18)
+        .attr("dy", d.data.icon ? 20 : 5)
         .attr("fill", "#ffffff")
-        .attr("font-size", "72px")
-        .attr("font-weight", "700")
+        .attr("font-size", "16px")
+        .attr("font-weight", "600")
         .attr("font-family", "Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif")
-        .style("font-size", "72px")
-        .style("font-weight", "700")
+        .style("font-size", "16px")
+        .style("font-weight", "600")
         .style("pointer-events", "none")
-        .style("text-shadow", "0 2px 4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.7)")
-        .style("letter-spacing", "0.8px")
+        .style("text-shadow", "0 1px 2px rgba(0, 0, 0, 0.5)")
+        .style("letter-spacing", "0.3px")
         .text(d.data.name);
+
+      // Wrap text if it's too long
+      const words = d.data.name.split(/\s+/);
+      const lineHeight = 1.2;
+      const maxCharsPerLine = Math.floor(nodeWidth / 8); // Approximate characters per line
+      
+      if (words.length > 1 && d.data.name.length > maxCharsPerLine) {
+        // Split text into multiple lines
+        let line = [];
+        let lineNumber = 0;
+        const lines = [];
+        
+        words.forEach((word) => {
+          const testLine = line.length > 0 ? line.join(' ') + ' ' + word : word;
+          if (testLine.length > maxCharsPerLine && line.length > 0) {
+            lines.push(line.join(' '));
+            line = [word];
+          } else {
+            line.push(word);
+          }
+        });
+        if (line.length > 0) {
+          lines.push(line.join(' '));
+        }
+
+        // Remove old text and add wrapped lines
+        textElement.remove();
+        
+        lines.forEach((lineText, i) => {
+          nodeGroup.append("text")
+            .attr("text-anchor", "middle")
+            .attr("dy", (d.data.icon ? 20 : 5) + (i - (lines.length - 1) / 2) * (16 * lineHeight))
+            .attr("fill", "#ffffff")
+            .attr("font-size", "16px")
+            .attr("font-weight", "600")
+            .attr("font-family", "Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif")
+            .style("font-size", "16px")
+            .style("font-weight", "600")
+            .style("pointer-events", "none")
+            .style("text-shadow", "0 1px 2px rgba(0, 0, 0, 0.5)")
+            .style("letter-spacing", "0.3px")
+            .text(lineText);
+        });
+
+        // Adjust node height if text wraps
+        if (lines.length > 1) {
+          const newHeight = getNodeHeight(d.data.icon) + (lines.length - 1) * 20;
+          rect.attr("height", newHeight);
+          rect.attr("y", -newHeight / 2);
+        }
+      }
     });
 
     // Add branch labels (Yes/No) along the links - positioned to the side
@@ -573,18 +627,20 @@ const MLLearningJourneyPage = () => {
               .style("filter", "drop-shadow(0 3px 8px rgba(102, 126, 234, 0.6))");
           });
         
-        // Add label text - larger font size with shadow
+        // Add label text - properly sized to fit within ellipse
         labelGroup.append("text")
           .attr("x", midX + 60)
           .attr("y", midY)
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
           .attr("fill", "#ffffff")
-          .attr("font-size", "36px")
-          .attr("font-weight", "800")
+          .attr("font-size", "18px")
+          .attr("font-weight", "700")
           .attr("font-family", "Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif")
-          .style("text-shadow", "0 2px 4px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8)")
-          .style("letter-spacing", "0.8px")
+          .style("font-size", "18px")
+          .style("font-weight", "700")
+          .style("text-shadow", "0 1px 2px rgba(0, 0, 0, 0.6)")
+          .style("letter-spacing", "0.5px")
           .text(labelText);
       });
 
@@ -775,6 +831,42 @@ const MLLearningJourneyPage = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Auto-advance AdaBoost steps when playing
+  useEffect(() => {
+    if (isAdaboostPlaying && activeBoostingTab === 'adaboost') {
+      adaboostPlayIntervalRef.current = setInterval(() => {
+        setAdaboostStep((prev) => {
+          const nextStep = prev + 1;
+          // Stop at the last step (step 5, index 5)
+          if (nextStep > 5) {
+            setIsAdaboostPlaying(false);
+            return prev;
+          }
+          return nextStep;
+        });
+      }, 4500); // 4.5 seconds per step for readability
+    } else {
+      if (adaboostPlayIntervalRef.current) {
+        clearInterval(adaboostPlayIntervalRef.current);
+        adaboostPlayIntervalRef.current = null;
+      }
+    }
+
+    // Cleanup on unmount or when tab changes
+    return () => {
+      if (adaboostPlayIntervalRef.current) {
+        clearInterval(adaboostPlayIntervalRef.current);
+      }
+    };
+  }, [isAdaboostPlaying, activeBoostingTab]);
+
+  // Reset playing state when switching tabs
+  useEffect(() => {
+    if (activeBoostingTab !== 'adaboost') {
+      setIsAdaboostPlaying(false);
+    }
+  }, [activeBoostingTab]);
 
   const runExperiment = async () => {
     setIsRunningExperiment(true);
@@ -1493,28 +1585,47 @@ const MLLearningJourneyPage = () => {
                     {/* Step Navigation */}
                     <div className="step-navigation">
                       <h5><Icon name="sync" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> How AdaBoost Works</h5>
-                      <div className="step-tabs">
-                        {[1, 2, 3, 4, 5, 6].map((stepNum) => (
-                          <button
-                            key={stepNum}
-                            className={`step-tab ${adaboostStep === stepNum - 1 ? 'active' : ''}`}
-                            onClick={() => setAdaboostStep(stepNum - 1)}
-                          >
-                            Step {stepNum}
-                          </button>
-                        ))}
+                      <div className="step-controls-wrapper">
+                        <button 
+                          className={`adaboost-play-btn ${isAdaboostPlaying ? 'playing' : ''}`}
+                          onClick={() => {
+                            setIsAdaboostPlaying((prev) => !prev);
+                            // If starting from the last step, reset to beginning
+                            if (adaboostStep === 5 && !isAdaboostPlaying) {
+                              setAdaboostStep(0);
+                            }
+                          }}
+                          aria-label={isAdaboostPlaying ? 'Pause' : 'Play'}
+                          title={isAdaboostPlaying ? 'Pause automatic slideshow' : 'Play automatic slideshow'}
+                        >
+                          <Icon name={isAdaboostPlaying ? 'pause' : 'play'} size={20} />
+                          <span style={{ marginLeft: '8px' }}>
+                            {isAdaboostPlaying ? 'Pause' : 'Play'} Slideshow
+                          </span>
+                        </button>
+                        <div className="step-indicator">
+                          <span className="current-step">Step {adaboostStep + 1}</span>
+                          <span className="separator">/</span>
+                          <span className="total-steps">6</span>
+                        </div>
                       </div>
                       <div className="step-nav-buttons">
                         <button 
                           className="step-nav-btn"
-                          onClick={() => setAdaboostStep(Math.max(0, adaboostStep - 1))}
+                          onClick={() => {
+                            setAdaboostStep(Math.max(0, adaboostStep - 1));
+                            if (isAdaboostPlaying) setIsAdaboostPlaying(false);
+                          }}
                           disabled={adaboostStep === 0}
                         >
                           <Icon name="left" size={14} style={{ marginRight: '4px' }} /> Previous
                         </button>
                         <button 
                           className="step-nav-btn"
-                          onClick={() => setAdaboostStep(Math.min(5, adaboostStep + 1))}
+                          onClick={() => {
+                            setAdaboostStep(Math.min(5, adaboostStep + 1));
+                            if (isAdaboostPlaying) setIsAdaboostPlaying(false);
+                          }}
                           disabled={adaboostStep === 5}
                         >
                           Next <Icon name="right" size={14} style={{ marginLeft: '4px' }} />
@@ -1785,51 +1896,6 @@ const MLLearningJourneyPage = () => {
                       )}
                     </div>
 
-                    {/* Key Concepts - Only show after viewing all steps */}
-                    {adaboostStep === 5 && (
-                      <>
-                        <div className="key-concepts-box" style={{ marginTop: '2rem' }}>
-                          <h5><Icon name="settings" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Key Concepts</h5>
-                          <div className="concepts-grid">
-                            <div className="concept-item">
-                              <strong>Simple Decision Trees:</strong> Very simple trees with just one split (one question). Much weaker than full trees, but AdaBoost combines many to make them strong.
-                            </div>
-                            <div className="concept-item">
-                              <strong>Adaptive Weights:</strong> Mistakes from one round become the focus of the next round. The algorithm adapts to fix errors iteratively.
-                            </div>
-                            <div className="concept-item">
-                              <strong>Weighted Voting:</strong> Not all trees are equal. More accurate trees get higher voting weights in the final prediction.
-                            </div>
-                            <div className="concept-item">
-                              <strong>Sequential Learning:</strong> Trees are built one after another, each learning from the previous tree's mistakes. This is different from Random Forest where trees are independent.
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Real-World Example */}
-                        <div className="real-world-example" style={{ marginTop: '2rem' }}>
-                          <h5><Icon name="hospital" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Real-World Example: Student Pass/Fail Prediction</h5>
-                          <div className="example-scenario">
-                            <p><strong>Scenario:</strong> We want to predict if a student with test score of 70, homework grade of 90, and attendance of 85% will pass or fail.</p>
-                            <div className="example-stumps">
-                              <div className="example-stump">
-                                <strong>Tree 1:</strong> "Score > 70?" → Yes → Votes <strong>Pass</strong> (weight: 0.85)
-                              </div>
-                              <div className="example-stump">
-                                <strong>Tree 2:</strong> "Homework > 80?" → Yes → Votes <strong>Pass</strong> (weight: 0.90)
-                              </div>
-                              <div className="example-stump">
-                                <strong>Tree 3:</strong> "Attendance > 90%?" → No → Votes <strong>Fail</strong> (weight: 0.60)
-                              </div>
-                            </div>
-                            <div className="example-result">
-                              <strong>Weighted Vote:</strong> (0.85 × Pass) + (0.90 × Pass) + (0.60 × Fail) = <strong>Pass</strong> wins!
-                            </div>
-                            <p><strong>Why it works:</strong> Even though Tree 3 says Fail, the first two trees (which are more accurate and weighted higher) both say Pass. The ensemble makes a more reliable prediction than any single tree alone.</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
                   </div>
                 </div>
               )}

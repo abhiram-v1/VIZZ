@@ -29,8 +29,8 @@ class ApiService {
     return this.request('/algorithms');
   }
 
-  async getDatasetPreview(rows = 10) {
-    return this.request(`/dataset/preview?rows=${rows}`);
+  async getDatasetPreview(rows = 10, dataset = "stroke") {
+    return this.request(`/dataset/preview?rows=${rows}&dataset=${dataset}`);
   }
 
   async uploadDataset(file) {

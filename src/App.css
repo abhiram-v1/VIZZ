@@ -509,31 +509,41 @@ body::before {
 
 .dataset-preview {
   margin-bottom: 2rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .dataset-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
+  margin-top: 0;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
   color: #ffffff;
+  table-layout: auto;
+  min-width: fit-content;
 }
 
 .dataset-table th,
 .dataset-table td {
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dataset-table th {
   background-color: rgba(0, 0, 0, 0.6);
   font-weight: 600;
   color: #ffffff;
+  white-space: normal;
+  word-wrap: break-word;
 }
 
 .dataset-table tr:hover {
@@ -3417,9 +3427,9 @@ body::before {
 }
 
 .decision-tree-d3 text {
-  font-size: 72px !important;
+  font-size: 16px !important;
   fill: #ffffff;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -4684,6 +4694,77 @@ body::before {
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
   font-weight: 700;
+}
+
+.step-controls-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.adaboost-play-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+}
+
+.adaboost-play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.6);
+  background: linear-gradient(135deg, #00e5ff 0%, #00b3d9 100%);
+}
+
+.adaboost-play-btn:active {
+  transform: translateY(0);
+}
+
+.adaboost-play-btn.playing {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+.adaboost-play-btn.playing:hover {
+  background: linear-gradient(135deg, #ff7b7b 0%, #ff6a7f 100%);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.step-indicator .current-step {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #FFD700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.step-indicator .separator {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.step-indicator .total-steps {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
 }
 
 .step-nav-buttons {
@@ -9231,6 +9312,47 @@ body::before {
   line-height: 1.6;
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.play-pause-btn {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  border: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+  color: white;
+}
+
+.play-pause-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.6);
+  background: linear-gradient(135deg, #00e5ff 0%, #00b3d9 100%);
+}
+
+.play-pause-btn:active {
+  transform: scale(0.95);
+}
+
+.play-pause-btn.playing {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+.play-pause-btn.playing:hover {
+  background: linear-gradient(135deg, #ff7b7b 0%, #ff6a7f 100%);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+}
+
 .iteration-indicator {
   display: flex;
   align-items: center;
@@ -9501,6 +9623,18 @@ body::before {
 
   .header-content h2 {
     font-size: 1.5rem;
+  }
+
+  .header-controls {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    align-items: center;
+  }
+
+  .play-pause-btn {
+    width: 45px;
+    height: 45px;
   }
 
   .header-description {

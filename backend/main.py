@@ -239,9 +239,22 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         if data_store['X_train'] is None or data_store['y_train'] is None:
             raise Exception("No dataset loaded. Please load a dataset first.")
         
-        # Get the actual training data
+        # Get the actual training data (this is already the sampled subset if n_samples was specified)
         X_train = data_store['X_train']
         y_train = data_store['y_train']
+        
+        # CRITICAL: Verify we're using sampled data, not full dataset
+        if X_train is None or y_train is None:
+            raise Exception("No training data available in data_store")
+        
+        training_size = len(X_train)
+        print(f"DEBUG: Decision boundary using {training_size} training samples")
+        
+        # If we have more than 1000 samples, something is wrong - we should be using sampled data
+        if training_size > 1000:
+            print(f"ERROR: Decision boundary has {training_size} samples - this looks like the FULL dataset!")
+            print(f"Expected sampled subset. The visualization will show incorrect data.")
+            raise Exception(f"Data store contains {training_size} samples - expected sampled subset. Check if n_samples was applied correctly.")
         
         # Select two features for visualization
         feature_names = data_store.get('feature_names', [])
@@ -262,15 +275,21 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
             X_2d = X_train.iloc[:, [0, 1]].values
             x_label, y_label = feature_names[0], feature_names[1]
         
-        # Get labels
+        # Get labels (these are already from the sampled subset)
         y_labels = y_train.values
         
-        # IMPORTANT: Model trains on ALL data (no sampling limit)
-        # This allows training with any number of samples for better decision boundaries
-        # Train a simple model
+        # IMPORTANT: X_train and y_train already contain only the sampled data points
+        # So we use ALL of them for visualization (no further sampling needed for small datasets)
+        
+        # Verify we're using the sampled data
+        if len(X_2d) > 1000:
+            print(f"WARNING: Decision boundary using {len(X_2d)} samples - this seems like full dataset!")
+            print(f"Expected sampled subset. Check if n_samples was applied correctly.")
+        
+        # Train a model on the sampled training data
         from sklearn.ensemble import AdaBoostClassifier
         model = AdaBoostClassifier(n_estimators=n_estimators, random_state=42)
-        model.fit(X_2d, y_labels)  # Uses all available training samples
+        model.fit(X_2d, y_labels)  # Uses the sampled training samples from data_store
         
         # Create a grid for decision boundary
         h = 0.5
@@ -289,17 +308,22 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         ax.contourf(xx, yy, Z, alpha=0.4, cmap=cmap_light)
         ax.contour(xx, yy, Z, colors='#ffffff', linewidths=3, alpha=0.9)
         
-        # Plot the actual data points
-        # For large datasets, sample points for visualization clarity, but train on all data
+        # Plot ALL the actual training data points (no sampling for small datasets)
         stroke_points = X_2d[y_labels == 1]
         no_stroke_points = X_2d[y_labels == 0]
         
-        # Balance visualization samples - take equal numbers from each class
-        # This ensures good visualization even with imbalanced original data
+        # For small datasets (< 100 points), show all points
+        # For larger datasets, sample for visualization clarity
+        total_points = len(X_2d)
+        if total_points <= 100:
+            # Show all points for small datasets
+            stroke_points_viz = stroke_points
+            no_stroke_points_viz = no_stroke_points
+        else:
+            # For larger datasets, sample for visualization
         max_viz_points = 2000
         min_class_viz = min(len(stroke_points), len(no_stroke_points), max_viz_points)
         
-        # Sample equal numbers from each class for balanced visualization
         if len(stroke_points) > min_class_viz:
             stroke_points_viz = stroke_points[np.random.choice(len(stroke_points), min_class_viz, replace=False)]
         else:
@@ -310,19 +334,22 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         else:
             no_stroke_points_viz = no_stroke_points
         
-        # Ensure balanced visualization (same count for both classes)
-        final_viz_count = min(len(stroke_points_viz), len(no_stroke_points_viz))
-        if len(stroke_points_viz) > final_viz_count:
-            stroke_points_viz = stroke_points_viz[np.random.choice(len(stroke_points_viz), final_viz_count, replace=False)]
-        if len(no_stroke_points_viz) > final_viz_count:
-            no_stroke_points_viz = no_stroke_points_viz[np.random.choice(len(no_stroke_points_viz), final_viz_count, replace=False)]
-        
+        # Show ALL training points (these are already the sampled subset if n_samples was specified)
+        # For small datasets, show all points; for larger ones, we already sampled above
+        total_training_points = len(X_2d)
         ax.scatter(no_stroke_points_viz[:, 0], no_stroke_points_viz[:, 1], 
-                  c='#f87171', label=f'No Stroke (showing {len(no_stroke_points_viz)} of {len(no_stroke_points)})', 
+                  c='#f87171', label=f'No Stroke ({len(no_stroke_points_viz)} points)', 
                   alpha=0.9, s=60, edgecolors='#ffffff', linewidth=1.5)
         ax.scatter(stroke_points_viz[:, 0], stroke_points_viz[:, 1], 
-                  c='#4ade80', label=f'Stroke (showing {len(stroke_points_viz)} of {len(stroke_points)})', 
+                  c='#4ade80', label=f'Stroke ({len(stroke_points_viz)} points)', 
                   alpha=0.9, s=60, edgecolors='#ffffff', linewidth=1.5)
+        
+        # Add info text showing total training samples used
+        info_text = f'Total Training Samples: {total_training_points}'
+        ax.text(0.02, 0.98, info_text, transform=ax.transAxes, 
+                fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='rgba(0,0,0,0.7)', alpha=0.8, edgecolor='white'),
+                color='white', weight='bold')
         
         # Labels and title with bright colors
         ax.set_xlabel(x_label, fontsize=12, fontweight='bold', color='#ffffff')
@@ -762,17 +789,244 @@ async def get_available_algorithms():
     return {"algorithms": available}
 
 @app.get("/dataset/preview")
-async def get_dataset_preview(rows: int = 10):
+async def get_dataset_preview(rows: int = 10, dataset: str = "stroke"):
     """Get first N rows of the dataset"""
-    if data_store['dataset'] is None:
-        raise HTTPException(status_code=404, detail="No dataset loaded")
-    
-    preview = data_store['dataset'].head(rows)
+    try:
+        # Load the requested dataset
+        df = load_dataset_by_name(dataset)
+        if df is None:
+            raise HTTPException(status_code=404, detail=f"Dataset '{dataset}' not found")
+        
+        preview = df.head(rows)
     return {
         "data": preview.to_dict('records'),
         "columns": preview.columns.tolist(),
-        "shape": data_store['dataset'].shape
-    }
+            "shape": df.shape,
+            "dataset_name": dataset
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading dataset: {str(e)}")
+
+def load_dataset_by_name(dataset_name: str):
+    """Load a dataset by name (for preview only)"""
+    try:
+        if dataset_name == "stroke":
+            # Load stroke dataset
+            dataset_paths = [
+                'data/stroke_data_balanced.csv',
+                '../data/stroke_data_balanced.csv',
+                './stroke_data_balanced.csv'
+            ]
+            for path in dataset_paths:
+                try:
+                    return pd.read_csv(path)
+                except FileNotFoundError:
+                    continue
+            return None
+        elif dataset_name == "churn" or dataset_name == "boosting_small":
+            # Load churn/boosting small dataset
+            dataset_paths = [
+                'boosting_small_dataset.csv',
+                'data/boosting_small_dataset.csv',
+                '../boosting_small_dataset.csv'
+            ]
+            for path in dataset_paths:
+                try:
+                    return pd.read_csv(path)
+                except FileNotFoundError:
+                    continue
+            return None
+        else:
+            return None
+    except Exception as e:
+        print(f"Error loading dataset {dataset_name}: {e}")
+        return None
+
+def load_dataset_for_training(dataset_name: str, n_samples: int = None):
+    """Load and prepare a dataset for training
+    
+    Args:
+        dataset_name: Name of the dataset to load
+        n_samples: Number of samples to use (None means use all available balanced data)
+                   If specified, samples balanced data (equal from each class when possible)
+    """
+    try:
+        # Clear previous data to ensure we start fresh
+        data_store['X_train'] = None
+        data_store['X_test'] = None
+        data_store['y_train'] = None
+        data_store['y_test'] = None
+        data_store['dataset'] = None
+        
+        df = load_dataset_by_name(dataset_name)
+        if df is None:
+            return False
+        
+        print(f"Loading dataset '{dataset_name}' with n_samples={n_samples}")
+        print(f"Full dataset shape: {df.shape}")
+        
+        if dataset_name == "stroke":
+            # Stroke dataset processing
+            X = df.drop(['id', 'stroke'], axis=1)
+            y = df['stroke']
+            
+            categorical_features = ['gender', 'ever_married', 'work_type', 'Residence_type', 'smoking_status']
+            numerical_features = ['age', 'hypertension', 'heart_disease', 'avg_glucose_level', 'bmi']
+            
+            # Encode categorical variables
+            X_encoded = X.copy()
+            for feature in categorical_features:
+                le = LabelEncoder()
+                X_encoded[feature] = le.fit_transform(X_encoded[feature].astype(str))
+            
+            # Balance classes
+            stroke_indices = y[y == 1].index
+            no_stroke_indices = y[y == 0].index
+            min_class_size = min(len(stroke_indices), len(no_stroke_indices))
+            
+            if min_class_size == 0:
+                balanced_indices = np.concatenate([stroke_indices, no_stroke_indices])
+            else:
+                # If n_samples is specified, sample balanced data
+                if n_samples is not None and n_samples > 0:
+                    samples_per_class = n_samples // 2
+                    # Don't exceed available samples per class
+                    samples_per_class = min(samples_per_class, min_class_size)
+                    print(f"Sampling {samples_per_class} samples per class (total requested: {n_samples})")
+                    if samples_per_class > 0:
+                        # Use a fixed random seed for reproducibility, but different from default
+                        np.random.seed(42 + hash(str(n_samples)) % 1000)  # Different seed for different n_samples
+                        balanced_stroke_indices = np.random.choice(stroke_indices, samples_per_class, replace=False)
+                        balanced_no_stroke_indices = np.random.choice(no_stroke_indices, samples_per_class, replace=False)
+                        balanced_indices = np.concatenate([balanced_stroke_indices, balanced_no_stroke_indices])
+                        print(f"Selected {len(balanced_indices)} total samples ({samples_per_class} from each class)")
+                    else:
+                        balanced_indices = np.concatenate([stroke_indices, no_stroke_indices])
+                else:
+                    # Use all balanced data
+                    balanced_stroke_indices = np.random.choice(stroke_indices, min_class_size, replace=False)
+                    balanced_no_stroke_indices = np.random.choice(no_stroke_indices, min_class_size, replace=False)
+                    balanced_indices = np.concatenate([balanced_stroke_indices, balanced_no_stroke_indices])
+            
+            # Reset random seed for consistent shuffling
+            np.random.seed(42)
+            np.random.shuffle(balanced_indices)
+            X_balanced = X_encoded.loc[balanced_indices].reset_index(drop=True)
+            y_balanced = y.loc[balanced_indices].reset_index(drop=True)
+            
+            # CRITICAL CHECK: Verify we have the right number of samples
+            if n_samples and len(X_balanced) != n_samples:
+                print(f"WARNING: Expected {n_samples} samples but got {len(X_balanced)}!")
+                print(f"This might cause the visualization to show wrong data!")
+            
+            # Log the balanced dataset size BEFORE train_test_split
+            print(f"BEFORE train_test_split: {len(X_balanced)} balanced samples (n_samples={n_samples}, {y_balanced.sum()} stroke, {len(y_balanced) - y_balanced.sum()} no-stroke)")
+            
+            # For small datasets, adjust test_size to ensure we have enough training data
+            # If n_samples was specified, we already have the right amount
+            if len(X_balanced) < 20:
+                # Very small dataset - use 80% for training, 20% for test
+                test_size = 0.2
+            else:
+                test_size = 0.2
+            
+            X_train, X_test, y_train, y_test = train_test_split(
+                X_balanced, y_balanced, test_size=test_size, random_state=42, stratify=y_balanced
+            )
+            
+            # Log the actual sizes for debugging
+            print(f"AFTER train_test_split - Training set size: {len(X_train)} samples ({y_train.sum()} stroke, {len(y_train) - y_train.sum()} no-stroke)")
+            print(f"AFTER train_test_split - Test set size: {len(X_test)} samples ({y_test.sum()} stroke, {len(y_test) - y_test.sum()} no-stroke)")
+            
+            # IMPORTANT: Only store the sampled training/test data, NOT the full dataset
+            data_store.update({
+                'X_train': X_train,  # This is the sampled subset (after train_test_split)
+                'X_test': X_test,   # This is the sampled test subset
+                'y_train': y_train,  # Labels for sampled training data
+                'y_test': y_test,   # Labels for sampled test data
+                'feature_names': X_encoded.columns.tolist(),
+                'categorical_features': categorical_features,
+                'numerical_features': numerical_features,
+                'dataset': X_balanced  # Store the balanced subset, not the full df
+            })
+            
+            # Verify the stored data
+            print(f"VERIFIED: data_store['X_train'] now has {len(data_store['X_train'])} samples")
+            
+        elif dataset_name == "churn" or dataset_name == "boosting_small":
+            # Churn dataset processing
+            X = df.drop(['CustomerID', 'Churn'], axis=1)
+            y = df['Churn']
+            
+            # All features are numerical for this dataset
+            categorical_features = []
+            numerical_features = X.columns.tolist()
+            
+            # No encoding needed - all numerical
+            X_encoded = X.copy()
+            
+            # Balance classes
+            churn_indices = y[y == 1].index
+            no_churn_indices = y[y == 0].index
+            min_class_size = min(len(churn_indices), len(no_churn_indices))
+            
+            if min_class_size == 0:
+                balanced_indices = np.concatenate([churn_indices, no_churn_indices])
+            else:
+                # If n_samples is specified, sample balanced data
+                if n_samples is not None and n_samples > 0:
+                    samples_per_class = n_samples // 2
+                    # Don't exceed available samples per class
+                    samples_per_class = min(samples_per_class, min_class_size)
+                    if samples_per_class > 0:
+                        balanced_churn_indices = np.random.choice(churn_indices, samples_per_class, replace=False)
+                        balanced_no_churn_indices = np.random.choice(no_churn_indices, samples_per_class, replace=False)
+                        balanced_indices = np.concatenate([balanced_churn_indices, balanced_no_churn_indices])
+                    else:
+                        balanced_indices = np.concatenate([churn_indices, no_churn_indices])
+                else:
+                    # Use all balanced data
+                    balanced_churn_indices = np.random.choice(churn_indices, min_class_size, replace=False)
+                    balanced_no_churn_indices = np.random.choice(no_churn_indices, min_class_size, replace=False)
+                    balanced_indices = np.concatenate([balanced_churn_indices, balanced_no_churn_indices])
+            
+            np.random.shuffle(balanced_indices)
+            X_balanced = X_encoded.loc[balanced_indices].reset_index(drop=True)
+            y_balanced = y.loc[balanced_indices].reset_index(drop=True)
+            
+            # For very small datasets (< 10 rows), use all data for training
+            if len(X_balanced) < 10:
+                # Use all data for training, create minimal test set
+                X_train = X_balanced
+                y_train = y_balanced
+                X_test = X_balanced.head(1) if len(X_balanced) > 0 else X_balanced
+                y_test = y_balanced.head(1) if len(y_balanced) > 0 else y_balanced
+            else:
+                X_train, X_test, y_train, y_test = train_test_split(
+                    X_balanced, y_balanced, test_size=0.2, random_state=42, stratify=y_balanced
+                )
+            
+            # IMPORTANT: Only store the sampled training/test data, NOT the full dataset
+            data_store.update({
+                'X_train': X_train,  # This is the sampled subset (after train_test_split)
+                'X_test': X_test,   # This is the sampled test subset
+                'y_train': y_train,  # Labels for sampled training data
+                'y_test': y_test,   # Labels for sampled test data
+                'feature_names': X_encoded.columns.tolist(),
+                'categorical_features': categorical_features,
+                'numerical_features': numerical_features,
+                'dataset': X_balanced  # Store the balanced subset, not the full df
+            })
+            
+            # Verify the stored data
+            print(f"VERIFIED: data_store['X_train'] now has {len(data_store['X_train'])} samples")
+        
+        print(f"Loaded dataset '{dataset_name}' for training - Final training set: {len(data_store['X_train'])} samples")
+        return True
+        
+    except Exception as e:
+        print(f"Error loading dataset for training: {e}")
+        return False
 
 @app.get("/plot/decision-boundary")
 async def get_decision_boundary_plot(stage: str = "initial"):
@@ -793,6 +1047,13 @@ async def get_decision_boundary_plot(stage: str = "initial"):
 async def get_boosting_decision_boundary(algorithm: str = "adaboost", n_estimators: int = 1):
     """Generate 2D decision boundary plots for boosting algorithms showing improvement"""
     try:
+        # Verify we have training data loaded
+        if data_store['X_train'] is None or data_store['y_train'] is None:
+            raise HTTPException(status_code=400, detail="No training data loaded. Please start training first.")
+        
+        # Log what we're using
+        print(f"API: Generating boundary plot with {len(data_store['X_train'])} training samples")
+        
         # Determine stage based on n_estimators
         if n_estimators <= 2:
             stage = "early"
@@ -801,7 +1062,7 @@ async def get_boosting_decision_boundary(algorithm: str = "adaboost", n_estimato
         else:
             stage = "late"
         
-        # Generate the boosting decision boundary plot
+        # Generate the boosting decision boundary plot (uses current data_store['X_train'])
         plot_data = generate_boosting_decision_boundary(algorithm, n_estimators, stage)
         
         if plot_data is None:
@@ -812,7 +1073,8 @@ async def get_boosting_decision_boundary(algorithm: str = "adaboost", n_estimato
             "algorithm": algorithm,
             "n_estimators": n_estimators,
             "stage": stage,
-            "type": "2D"
+            "type": "2D",
+            "training_samples": len(data_store['X_train'])  # Include info about samples used
         }
         
     except Exception as e:
@@ -1693,10 +1955,23 @@ async def start_training(sid, data):
     try:
         algorithm = data.get('algorithm')
         params = data.get('params', {})
+        dataset_name = data.get('dataset', 'stroke')  # Default to stroke if not specified
+        n_samples = params.get('n_samples', None)  # Get number of samples to use
+        
+        # Load the requested dataset for training with specified number of samples
+        if not load_dataset_for_training(dataset_name, n_samples):
+            await sio.emit('error', {'message': f'Failed to load dataset: {dataset_name}'}, room=sid)
+            return
         
         if data_store['X_train'] is None:
             await sio.emit('error', {'message': 'No dataset loaded'}, room=sid)
             return
+        
+        # CRITICAL: Verify the data_store was updated with sampled data
+        actual_training_size = len(data_store['X_train'])
+        print(f"TRAINING START: data_store['X_train'] has {actual_training_size} samples")
+        if n_samples and actual_training_size > n_samples * 1.5:  # Allow some margin for train_test_split
+            print(f"WARNING: Expected ~{n_samples} samples but got {actual_training_size} - data_store may not be updated correctly!")
         
         tracker = ProgressTracker(algorithm, sid)
         
@@ -1713,7 +1988,17 @@ async def start_training(sid, data):
             await sio.emit('error', {'message': f'Unknown algorithm: {algorithm}'}, room=sid)
             return
         
-        await sio.emit('training_started', {'algorithm': algorithm, 'params': params}, room=sid)
+        # Send training data to frontend for visualization
+        training_data = {
+            'X_train': data_store['X_train'].values.tolist(),
+            'y_train': data_store['y_train'].values.tolist(),
+            'feature_names': data_store.get('feature_names', [])
+        }
+        await sio.emit('training_started', {
+            'algorithm': algorithm, 
+            'params': params,
+            'training_data': convert_numpy_types(training_data)
+        }, room=sid)
         
         try:
             model, metrics = await training_funcs[algorithm](params, tracker)
@@ -1726,9 +2011,10 @@ async def start_training(sid, data):
             # Convert all data to JSON-serializable types
             completion_data = {
                 'algorithm': algorithm,
-                'metrics': metrics,
+                'metrics': metrics,  # These are the real metrics from test set
                 'feature_importances': feature_importances,
-                'loss_history': tracker.loss_history
+                'loss_history': tracker.loss_history,
+                'total_iterations': params.get('n_estimators', 50)
             }
             completion_data = convert_numpy_types(completion_data)
             

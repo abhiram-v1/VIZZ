@@ -17,17 +17,29 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
   const [metrics, setMetrics] = useState(null);
   const [lossHistory, setLossHistory] = useState([]);
   const [featureImportances, setFeatureImportances] = useState(null);
+  const [selectedDataset, setSelectedDataset] = useState("stroke");
   
   // Use defaultParams as the recommended/best parameters
   // Define this outside useState so it's accessible in handlers
-  const getRecommendedParams = () => ({
-    n_estimators: defaultParams.n_estimators || 50,
-    learning_rate: defaultParams.learning_rate || 0.1,
-    max_depth: defaultParams.max_depth || 3
-  });
+  const getRecommendedParams = (dataset) => {
+    // For small datasets like churn (10 rows), use smaller n_estimators
+    if (dataset === "churn" || dataset === "boosting_small") {
+      return {
+        n_estimators: 10,
+        learning_rate: defaultParams.learning_rate || 0.1,
+        max_depth: defaultParams.max_depth || 3
+      };
+    }
+    return {
+      n_estimators: defaultParams.n_estimators || 50,
+      learning_rate: defaultParams.learning_rate || 0.1,
+      max_depth: defaultParams.max_depth || 3
+    };
+  };
   
-  const recommendedParams = getRecommendedParams();
+  const recommendedParams = getRecommendedParams(selectedDataset);
   const [params, setParams] = useState(recommendedParams);
+  const [nSamples, setNSamples] = useState(null); // null means use all data
   const [error, setError] = useState(null);
   const [predictionData, setPredictionData] = useState({
     gender: 'Male',
@@ -55,10 +67,40 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
   const [boundaryIterations, setBoundaryIterations] = useState([]);
   const [trainingDataForBoundary, setTrainingDataForBoundary] = useState(null);
 
-  // Load dataset preview on component mount
+  // Load dataset preview on component mount and when dataset changes
   useEffect(() => {
-    loadDatasetPreview();
-  }, []);
+    const fetchData = async () => {
+      try {
+        const data = await apiService.getDatasetPreview(5, selectedDataset);
+        setDatasetPreview(data);
+        
+        // Update parameters based on dataset size
+        const newRecommendedParams = getRecommendedParams(selectedDataset);
+        setParams(newRecommendedParams);
+        
+        // Reset n_samples when dataset changes
+        setNSamples(null);
+        
+        // Also prepare training data structure for decision boundary
+        // This will be updated with real data during training
+        if (data && data.columns) {
+          // Determine target column based on dataset
+          const targetColumn = selectedDataset === "stroke" ? "stroke" : "Churn";
+          const idColumn = selectedDataset === "stroke" ? "id" : "CustomerID";
+          setTrainingDataForBoundary({
+            featureNames: data.columns.filter(col => col !== targetColumn && col !== idColumn),
+            X: [],
+            y: []
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load dataset preview:', error);
+        setError('Failed to load dataset preview');
+      }
+    };
+    
+    fetchData();
+  }, [selectedDataset]);
 
   // Animation effect for decision boundary
   useEffect(() => {
@@ -99,6 +141,11 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
       setTrainingStage('initialization');
       setShowTrainingDemo(true);
       addLog(`Started training ${algorithm} with params: ${JSON.stringify(data.params)}`, 'info');
+      
+      // Load training data for boundary visualization if available
+      if (data.training_data) {
+        setTrainingDataForBoundary(data.training_data);
+      }
       
       // Initialize training demonstration
       startTrainingDemonstration();
@@ -336,25 +383,6 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
     };
   }, [algorithm]);
 
-  const loadDatasetPreview = async () => {
-    try {
-      const data = await apiService.getDatasetPreview(5);
-      setDatasetPreview(data);
-      
-      // Also prepare training data structure for decision boundary
-      // This will be updated with real data during training
-      if (data && data.columns) {
-        setTrainingDataForBoundary({
-          featureNames: data.columns.filter(col => col !== 'stroke' && col !== 'id'),
-          X: [],
-          y: []
-        });
-      }
-    } catch (error) {
-      console.error('Failed to load dataset preview:', error);
-      setError('Failed to load dataset preview');
-    }
-  };
 
   // Tree visualization generation function
   const generateTreeVisualization = (iteration, algType, metrics) => {
@@ -535,23 +563,34 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
       return;
     }
     
+    // Get recommended params for current dataset
+    const currentRecommendedParams = getRecommendedParams(selectedDataset);
+    
     // Use current params or fall back to recommended params
     const currentParams = {
-      n_estimators: params.n_estimators || recommendedParams.n_estimators,
-      learning_rate: params.learning_rate || recommendedParams.learning_rate,
-      max_depth: params.max_depth || recommendedParams.max_depth
+      n_estimators: params.n_estimators || currentRecommendedParams.n_estimators,
+      learning_rate: params.learning_rate || currentRecommendedParams.learning_rate,
+      max_depth: params.max_depth || currentRecommendedParams.max_depth
     };
     
     // Validate and clean parameters before sending
-    // No limit on n_estimators - users can train with any number for better results
+    // Adjust n_estimators based on dataset size
+    let maxEstimators = 200; // Default max for stroke dataset
+    let minEstimators = 10; // Default min
+    if (selectedDataset === "churn" || selectedDataset === "boosting_small") {
+      maxEstimators = 10; // Small dataset, limit to 10
+      minEstimators = 1; // Allow as low as 1 for very small datasets
+    }
+    
     const cleanParams = {
-      n_estimators: Math.max(10, currentParams.n_estimators), // Removed 200 limit
+      n_estimators: Math.max(minEstimators, Math.min(maxEstimators, currentParams.n_estimators)),
       learning_rate: Math.max(0.01, Math.min(2.0, currentParams.learning_rate)),
-      max_depth: Math.max(1, Math.min(10, currentParams.max_depth))
+      max_depth: Math.max(1, Math.min(10, currentParams.max_depth)),
+      n_samples: nSamples // Add number of samples to use (null means use all)
     };
     
     setLogs([]);
-    socketService.startTraining(algorithm, cleanParams);
+    socketService.startTraining(algorithm, cleanParams, selectedDataset);
   };
 
   const handleStopTraining = () => {
@@ -883,40 +922,88 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
       {/* Dataset Preview */}
       <div className="dataset-preview">
         <h2 className="section-title"><Icon name="chart" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> About the Dataset</h2>
+        
+        {/* Dataset Selection Dropdown */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label htmlFor="dataset-select" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '1rem' }}>
+            Select Dataset:
+          </label>
+          <select
+            id="dataset-select"
+            value={selectedDataset}
+            onChange={(e) => setSelectedDataset(e.target.value)}
+            style={{
+              padding: '0.75rem 1rem',
+              fontSize: '1rem',
+              borderRadius: '8px',
+              border: '2px solid rgba(102, 126, 234, 0.3)',
+              backgroundColor: 'rgba(26, 26, 46, 0.8)',
+              color: '#ffffff',
+              cursor: 'pointer',
+              minWidth: '250px',
+              outline: 'none',
+              transition: 'border-color 0.3s ease'
+            }}
+            onFocus={(e) => e.target.style.borderColor = 'rgba(102, 126, 234, 0.8)'}
+            onBlur={(e) => e.target.style.borderColor = 'rgba(102, 126, 234, 0.3)'}
+          >
+            <option value="stroke">Stroke Prediction Dataset</option>
+            <option value="churn">Customer Churn Dataset (Small)</option>
+          </select>
+        </div>
+
         <div className="dataset-explanation">
-          <p>
-            <strong>Stroke Prediction Dataset:</strong> This dataset contains real patient health records used to predict stroke risk. 
-            Each row represents one patient with features like age, blood pressure, BMI, glucose levels, and other health indicators. 
-            The target variable (stroke) indicates whether the patient had a stroke (1) or not (0).
-          </p>
-          <p>
-            <strong>Why this dataset?</strong> Stroke prediction is a critical healthcare application where machine learning can help 
-            identify at-risk patients early. This allows healthcare providers to take preventive measures before a stroke occurs.
-          </p>
+          {selectedDataset === "stroke" ? (
+            <>
+              <p>
+                <strong>Stroke Prediction Dataset:</strong> This dataset contains real patient health records used to predict stroke risk. 
+                Each row represents one patient with features like age, blood pressure, BMI, glucose levels, and other health indicators. 
+                The target variable (stroke) indicates whether the patient had a stroke (1) or not (0).
+              </p>
+              <p>
+                <strong>Why this dataset?</strong> Stroke prediction is a critical healthcare application where machine learning can help 
+                identify at-risk patients early. This allows healthcare providers to take preventive measures before a stroke occurs.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                <strong>Customer Churn Dataset:</strong> This dataset contains customer information for predicting churn (whether a customer will leave). 
+                Each row represents one customer with features like age, income, tenure, number of products, credit card status, active membership, and account balance. 
+                The target variable (Churn) indicates whether the customer churned (1) or remained (0).
+              </p>
+              <p>
+                <strong>Why this dataset?</strong> Customer churn prediction is a common business application where machine learning helps identify 
+                customers at risk of leaving. This enables businesses to take proactive retention measures and improve customer satisfaction.
+              </p>
+            </>
+          )}
         </div>
         {datasetPreview && (
-          <div>
+          <div key={selectedDataset}>
             <h3 className="section-subtitle">Dataset Preview (First 5 Rows)</h3>
             <p className="dataset-info">Dataset shape: {datasetPreview.shape[0]} rows × {datasetPreview.shape[1]} columns</p>
             {datasetPreview.data && datasetPreview.data.length > 0 && (
-              <table className="dataset-table">
-                <thead>
-                  <tr>
-                    {datasetPreview.columns.map((col, i) => (
-                      <th key={i}>{col}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {datasetPreview.data.map((row, i) => (
-                    <tr key={i}>
-                      {datasetPreview.columns.map((col, j) => (
-                        <td key={j}>{row[col]}</td>
+              <div style={{ overflowX: 'auto', width: '100%', maxWidth: '100%', marginTop: '1rem', borderRadius: '8px' }}>
+                <table className="dataset-table">
+                  <thead>
+                    <tr>
+                      {datasetPreview.columns.map((col, i) => (
+                        <th key={i}>{col}</th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {datasetPreview.data.map((row, i) => (
+                      <tr key={i}>
+                        {datasetPreview.columns.map((col, j) => (
+                          <td key={j}>{row[col]}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
@@ -1016,6 +1103,35 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
               <span className="recommended-value">Recommended: {recommendedParams.max_depth}</span>
               <span>10</span>
             </div>
+          </div>
+          
+          <div className="param-group">
+            <div className="param-label-row">
+              <label className="param-label">Number of Data Points</label>
+              <span className="param-value">{nSamples ? `${nSamples} (balanced)` : 'All available'}</span>
+            </div>
+            <input
+              type="range"
+              className="param-slider"
+              value={nSamples || (datasetPreview ? datasetPreview.shape[0] : 100)}
+              onChange={(e) => {
+                const value = parseInt(e.target.value);
+                const maxValue = datasetPreview ? datasetPreview.shape[0] : 100;
+                setNSamples(value === maxValue ? null : value);
+              }}
+              disabled={isTraining || !datasetPreview}
+              min="10"
+              max={datasetPreview ? Math.min(datasetPreview.shape[0], 500) : 500}
+              step="10"
+            />
+            <div className="param-range">
+              <span>10</span>
+              <span className="recommended-value">Use all: Leave at max</span>
+              <span>{datasetPreview ? Math.min(datasetPreview.shape[0], 500) : 500}</span>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.5rem' }}>
+              Select number of data points to use for training. The system will automatically balance classes (e.g., 25 stroke + 25 non-stroke = 50 total).
+            </p>
           </div>
           
           <button

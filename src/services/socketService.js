@@ -77,16 +77,16 @@ class SocketService {
     }
   }
 
-  startTraining(algorithm, params = {}) {
+  startTraining(algorithm, params = {}, dataset = "stroke") {
     this.connect();
     if (this.socket) {
-      this.socket.emit('start_training', { algorithm, params });
+      this.socket.emit('start_training', { algorithm, params, dataset });
     } else {
       console.warn('Socket not connected, but attempting to start training...');
       // Try again after a short delay
       setTimeout(() => {
         if (this.socket) {
-          this.socket.emit('start_training', { algorithm, params });
+          this.socket.emit('start_training', { algorithm, params, dataset });
         }
       }, 1000);
     }

@@ -6,8 +6,10 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
   const [currentIndex, setCurrentIndex] = useState(0);
   const [boundaries, setBoundaries] = useState([]);
   const [hasRealBoundaries, setHasRealBoundaries] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const svgRefs = useRef([]);
   const containerRef = useRef(null);
+  const playIntervalRef = useRef(null);
 
   // Fetch real decision boundaries from backend API
   useEffect(() => {
@@ -86,6 +88,31 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
 
     fetchRealBoundaries();
   }, [algorithm, trainingData, iterations]);
+
+  // Auto-advance when playing
+  useEffect(() => {
+    if (isPlaying && boundaries && boundaries.length > 0) {
+      playIntervalRef.current = setInterval(() => {
+        setCurrentIndex((prev) => {
+          const nextIndex = (prev + 1) % boundaries.length;
+          // Loop back to start when reaching the end
+          return nextIndex;
+        });
+      }, 1500); // Advance every 1.5 seconds
+    } else {
+      if (playIntervalRef.current) {
+        clearInterval(playIntervalRef.current);
+        playIntervalRef.current = null;
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (playIntervalRef.current) {
+        clearInterval(playIntervalRef.current);
+      }
+    };
+  }, [isPlaying, boundaries]);
 
   // Render decision boundaries to SVG or display PNG from backend
   useEffect(() => {
@@ -1003,6 +1030,14 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
   const goToBoundary = (index) => {
     if (!boundaries || boundaries.length === 0) return;
     setCurrentIndex(index);
+    // Stop playing when user manually navigates
+    if (isPlaying) {
+      setIsPlaying(false);
+    }
+  };
+
+  const togglePlay = () => {
+    setIsPlaying((prev) => !prev);
   };
 
   if (!boundaries || !Array.isArray(boundaries) || boundaries.length === 0) {
@@ -1031,17 +1066,30 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
               : `Calculated decision boundaries based on ${algorithm.toUpperCase()} algorithm patterns showing progressive improvement (connect to backend for real boundaries)`}
           </p>
         </div>
-        <div className="iteration-indicator">
-          <span className="current-iteration">{currentIndex + 1}</span>
-          <span className="separator">/</span>
-          <span className="total-iterations">{boundaries?.length || 0}</span>
+        <div className="header-controls">
+          <button 
+            className={`play-pause-btn ${isPlaying ? 'playing' : ''}`}
+            onClick={togglePlay}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            title={isPlaying ? 'Pause automatic slideshow' : 'Play automatic slideshow'}
+          >
+            <Icon name={isPlaying ? 'pause' : 'play'} size={20} />
+          </button>
+          <div className="iteration-indicator">
+            <span className="current-iteration">{currentIndex + 1}</span>
+            <span className="separator">/</span>
+            <span className="total-iterations">{boundaries?.length || 0}</span>
+          </div>
         </div>
       </div>
 
       <div className="carousel-container">
         <button 
           className="carousel-nav-btn prev-btn"
-          onClick={prevBoundary}
+          onClick={() => {
+            prevBoundary();
+            if (isPlaying) setIsPlaying(false);
+          }}
           aria-label="Previous iteration"
         >
           <Icon name="previous" size={24} />
@@ -1102,7 +1150,10 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
 
         <button 
           className="carousel-nav-btn next-btn"
-          onClick={nextBoundary}
+          onClick={() => {
+            nextBoundary();
+            if (isPlaying) setIsPlaying(false);
+          }}
           aria-label="Next iteration"
         >
           <Icon name="next" size={24} />
