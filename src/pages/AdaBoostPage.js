@@ -12,7 +12,7 @@ const AdaBoostPage = () => {
     <AlgorithmPage
       algorithm="adaboost"
       title="AdaBoost Classifier"
-      description="Adaptive Boosting - combines multiple weak learners sequentially, where each subsequent learner focuses on the mistakes of the previous ones."
+      description="Adaptive Boosting - a powerful ensemble method where focusing on mistakes makes models incredibly strong. Each new learner adapts to fix what the previous ones got wrong."
       defaultParams={defaultParams}
     />
   );

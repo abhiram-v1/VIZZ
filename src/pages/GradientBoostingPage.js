@@ -12,7 +12,7 @@ const GradientBoostingPage = () => {
     <AlgorithmPage
       algorithm="gradient_boosting"
       title="Gradient Boosting Classifier"
-      description="Gradient Boosting - builds models sequentially, where each new model minimizes the loss function using gradient descent."
+      description="Gradient Boosting - a powerful ensemble method that systematically improves predictions by fixing errors one step at a time, building models sequentially to correct previous mistakes."
       defaultParams={defaultParams}
     />
   );

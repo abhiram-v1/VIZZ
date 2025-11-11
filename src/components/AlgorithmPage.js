@@ -365,7 +365,7 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
     // Simulate different tree structures based on algorithm and iteration
     let treeStructure;
     if (algType === 'adaboost') {
-      // AdaBoost typically uses shallow trees (stumps)
+      // AdaBoost typically uses shallow trees (simple decision trees with depth 1)
       treeStructure = {
         type: 'stump',
         feature: randomFeature,
@@ -594,48 +594,6 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
   return (
     <div className="algorithm-page">
       <div className="page-header">
-        <div className="algorithm-icon-wrapper">
-          {algorithm === 'adaboost' && (
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '12px' }}>
-              {/* Scale/Balance representing adaptive weights */}
-              <path d="M3 12H21" stroke="#ec4899" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M12 3V12" stroke="#ec4899" strokeWidth="2" strokeLinecap="round"/>
-              <circle cx="5" cy="16" r="2" fill="#ec4899" opacity="0.3"/>
-              <circle cx="12" cy="16" r="2" fill="#ec4899"/>
-              <circle cx="19" cy="16" r="2" fill="#ec4899" opacity="0.7"/>
-              {/* Arrows showing adaptation */}
-              <path d="M8 14L10 12L8 10" stroke="#db2777" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              <path d="M16 14L14 12L16 10" stroke="#db2777" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            </svg>
-          )}
-          {algorithm === 'gradient_boosting' && (
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '12px' }}>
-              {/* Gradient/improvement curve */}
-              <path d="M3 20L7 16L11 18L15 12L19 14L21 10" stroke="#14b8a6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              {/* Correction arrows pointing upward */}
-              <path d="M7 18L7 14" stroke="#0d9488" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M11 20L11 16" stroke="#0d9488" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M15 14L15 10" stroke="#0d9488" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M19 16L19 12" stroke="#0d9488" strokeWidth="1.5" strokeLinecap="round"/>
-              {/* Step indicators */}
-              <circle cx="7" cy="14" r="1.5" fill="#14b8a6"/>
-              <circle cx="11" cy="16" r="1.5" fill="#14b8a6"/>
-              <circle cx="15" cy="10" r="1.5" fill="#14b8a6"/>
-              <circle cx="19" cy="12" r="1.5" fill="#14b8a6"/>
-            </svg>
-          )}
-          {algorithm === 'xgboost' && (
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '12px' }}>
-              {/* Lightning bolt for speed */}
-              <path d="M13 2L8 10H12L11 18L16 10H12L13 2Z" fill="#f59e0b" stroke="#fbbf24" strokeWidth="0.5"/>
-              {/* Shield outline for regularization/protection */}
-              <path d="M6 8C6 6 8 4 12 4C16 4 18 6 18 8C18 10 16 14 12 18C8 14 6 10 6 8Z" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.6"/>
-              {/* Speed lines */}
-              <path d="M19 6L21 4" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" opacity="0.7"/>
-              <path d="M20 7L21.5 5.5" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" opacity="0.7"/>
-            </svg>
-          )}
-        </div>
         <div>
           <h1 className="page-title">{title}</h1>
           <p className="page-description">{description}</p>
@@ -679,8 +637,8 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
               {trainingStage === 'first_tree' && currentTree && (
                 <div className="demo-stage">
-                  <h3><Icon name="tree" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 2: First Decision Stump</h3>
-                  <p>Training a simple decision stump on the weighted data</p>
+                  <h3><Icon name="tree" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 2: First Decision Tree</h3>
+                  <p>Training a simple decision tree on the weighted data</p>
                   <div className="accuracy-display">
                     Accuracy: {(currentTree.accuracy * 100).toFixed(1)}%
                   </div>
@@ -728,8 +686,8 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
               {trainingStage === 'second_tree' && currentTree && (
                 <div className="demo-stage">
-                  <h3><Icon name="tree" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 4: Second Decision Stump</h3>
-                  <p>Training a new stump focusing on high-weight samples</p>
+                  <h3><Icon name="tree" size={20} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Stage 4: Second Decision Tree</h3>
+                  <p>Training a new tree focusing on high-weight samples</p>
                   <div className="accuracy-display">
                     Accuracy: {(currentTree.accuracy * 100).toFixed(1)}%
                   </div>
@@ -1125,7 +1083,7 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
       {(algorithm === 'adaboost' || algorithm === 'gradient_boosting') && (isTraining || showTreeVisualization) && (
         <div className="tree-visualization-section">
           <h2 className="section-title">
-            <Icon name="tree" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Decision Tree Formation - {algorithm === 'adaboost' ? 'AdaBoost Stumps' : 'Gradient Boosting Trees'}
+            <Icon name="tree" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Decision Tree Formation - {algorithm === 'adaboost' ? 'AdaBoost Trees' : 'Gradient Boosting Trees'}
           </h2>
           
           <div className="tree-layout">
@@ -1189,12 +1147,12 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
               <div className="explanation-text">
                 {algorithm === 'adaboost' ? (
                   <>
-                    <p><strong>AdaBoost (Adaptive Boosting)</strong> builds an ensemble of weak learners (decision stumps):</p>
+                    <p><strong>AdaBoost (Adaptive Boosting)</strong> builds an ensemble of weak learners (simple decision trees):</p>
                     <ul>
                       <li><Icon name="target" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Each iteration focuses on misclassified training examples</li>
                       <li><Icon name="scale" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Trees get different weights based on their accuracy</li>
-                      <li><Icon name="target" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Final prediction combines all weighted stumps</li>
-                      <li><Icon name="chart" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Each stump learns from previous mistakes</li>
+                      <li><Icon name="target" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Final prediction combines all weighted trees</li>
+                      <li><Icon name="chart" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Each tree learns from previous mistakes</li>
                     </ul>
                   </>
                 ) : (

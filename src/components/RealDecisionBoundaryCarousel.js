@@ -132,39 +132,6 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
           .attr("height", height)
           .attr("preserveAspectRatio", "xMidYMid meet")
           .style("opacity", 0.9);
-        
-        // Add accuracy overlay with real badge - Dark theme
-        const overlayGroup = svg.append("g");
-        
-        // Background for text - Dark theme
-        overlayGroup.append("rect")
-          .attr("x", width - 220)
-          .attr("y", 20)
-          .attr("width", 200)
-          .attr("height", 50)
-          .attr("rx", 5)
-          .style("fill", "rgba(0, 0, 0, 0.7)")
-          .style("stroke", "#27ae60")
-          .style("stroke-width", 2)
-          .style("backdrop-filter", "blur(10px)");
-        
-        // Real badge
-        overlayGroup.append("text")
-          .attr("x", width - 210)
-          .attr("y", 40)
-          .style("font-size", "12px")
-          .style("font-weight", "bold")
-          .style("fill", "#51cf66")
-          .text("✓ REAL MODEL BOUNDARY");
-        
-        // Accuracy
-        overlayGroup.append("text")
-          .attr("x", width - 210)
-          .attr("y", 58)
-          .style("font-size", "16px")
-          .style("font-weight", "bold")
-          .style("fill", "#e0e0e0")
-          .text(`Accuracy: ${(boundary.accuracy * 100).toFixed(2)}%`);
       } else {
         // Render synthetic boundary using D3
         renderDecisionBoundary(container, boundary, idx);
@@ -908,7 +875,7 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
       .attr("transform", `translate(0,${plotHeight})`)
       .call(xAxis)
       .selectAll("text")
-      .style("font-size", "13px")
+      .style("font-size", "20px")
       .style("fill", "#e0e0e0")
       .style("font-weight", "500");
 
@@ -916,7 +883,7 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
       .attr("class", "y-axis")
       .call(yAxis)
       .selectAll("text")
-      .style("font-size", "13px")
+      .style("font-size", "20px")
       .style("fill", "#e0e0e0")
       .style("font-weight", "500");
 
@@ -955,7 +922,7 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
       .attr("x", plotWidth / 2)
       .attr("y", plotHeight + margin.bottom - 15)
       .attr("text-anchor", "middle")
-      .style("font-size", "16px")
+      .style("font-size", "20px")
       .style("font-weight", "bold")
       .style("fill", "#00d4ff")
       .text("Age (years)");
@@ -965,7 +932,7 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
       .attr("y", -margin.left + 25)
       .attr("text-anchor", "middle")
       .attr("transform", "rotate(-90)")
-      .style("font-size", "16px")
+      .style("font-size", "20px")
       .style("font-weight", "bold")
       .style("fill", "#00d4ff")
       .text("Average Glucose Level (mg/dL)");
@@ -975,31 +942,12 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
       .attr("x", width / 2)
       .attr("y", 35)
       .attr("text-anchor", "middle")
-      .style("font-size", "20px")
+      .style("font-size", "32px")
       .style("font-weight", "bold")
       .style("fill", "#00d4ff")
       .style("text-shadow", "0 0 10px rgba(0, 212, 255, 0.5)")
       .text(`${algorithm.toUpperCase()} Decision Boundary - Iteration ${boundary.iteration}`);
 
-    // Accuracy display - Dark theme
-    svg.append("rect")
-      .attr("x", width - margin.right + 10)
-      .attr("y", margin.top + 5)
-      .attr("width", 180)
-      .attr("height", 35)
-      .attr("rx", 5)
-      .style("fill", "rgba(39, 174, 96, 0.2)")
-      .style("stroke", "#27ae60")
-      .style("stroke-width", 2);
-
-    svg.append("text")
-      .attr("x", width - margin.right + 100)
-      .attr("y", margin.top + 28)
-      .attr("text-anchor", "middle")
-      .style("font-size", "18px")
-      .style("font-weight", "bold")
-      .style("fill", "#51cf66")
-      .text(`Accuracy: ${(boundary.accuracy * 100).toFixed(2)}%`);
 
     // Legend - Dark theme
     const legend = plotArea.append("g")
@@ -1035,7 +983,7 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
       legendItem.append("text")
         .attr("x", 15)
         .attr("y", 5)
-        .style("font-size", "13px")
+        .style("font-size", "20px")
         .style("font-weight", "bold")
         .style("fill", "#e0e0e0")
         .text(item.label);
@@ -1116,6 +1064,13 @@ const RealDecisionBoundaryCarousel = ({ algorithm, trainingData, iterations = []
                     />
                   </div>
                   <div className="boundary-metadata">
+                    {boundary.plotData && (
+                      <div className="metadata-item real-model-badge">
+                        <span className="metadata-value highlight" style={{ color: '#51cf66', fontWeight: 'bold' }}>
+                          ✓ REAL MODEL BOUNDARY
+                        </span>
+                      </div>
+                    )}
                     <div className="metadata-item">
                       <span className="metadata-label">Iteration:</span>
                       <span className="metadata-value">{boundary.iteration}</span>

@@ -166,25 +166,25 @@ const ProfessionalDecisionBoundary = ({ algorithm, iteration = 0, size = 'large'
         <line x1="50" y1="50" x2="50" y2={height - 50} stroke="#333" strokeWidth="2"/>
         
         {/* Axis labels - matching PNG style */}
-        <text x={width / 2} y={height - 20} textAnchor="middle" fontSize={isLarge ? 14 : 12} fill="#333" fontWeight="bold">
+        <text x={width / 2} y={height - 20} textAnchor="middle" fontSize={isLarge ? 22 : 20} fill="#333" fontWeight="bold">
           Age (scaled)
         </text>
-        <text x="25" y={height / 2} textAnchor="middle" fontSize={isLarge ? 14 : 12} fill="#333" fontWeight="bold"
+        <text x="25" y={height / 2} textAnchor="middle" fontSize={isLarge ? 22 : 20} fill="#333" fontWeight="bold"
               transform={`rotate(-90, 25, ${height / 2})`}>
           Glucose Level (scaled)
         </text>
         
         {/* Title - matching PNG style */}
-        <text x={width / 2} y="30" textAnchor="middle" fontSize={isLarge ? 16 : 14} fill="#333" fontWeight="bold">
+        <text x={width / 2} y="30" textAnchor="middle" fontSize={isLarge ? 26 : 22} fill="#333" fontWeight="bold">
           {algorithm.toUpperCase()} Decision Boundary - Iteration {iteration + 1}
         </text>
         
         {/* Legend - matching PNG style */}
         <g transform={`translate(${width - 140}, 60)`}>
           <circle cx="10" cy="10" r="5" fill="#e74c3c" stroke="#c0392b" strokeWidth="1.5"/>
-          <text x="20" y="15" fontSize={isLarge ? 12 : 10} fill="#333" fontWeight="bold">Stroke</text>
+          <text x="20" y="15" fontSize={isLarge ? 19 : 16} fill="#333" fontWeight="bold">Stroke</text>
           <circle cx="10" cy="30" r="5" fill="#2ecc71" stroke="#27ae60" strokeWidth="1.5"/>
-          <text x="20" y="35" fontSize={isLarge ? 12 : 10} fill="#333" fontWeight="bold">No Stroke</text>
+          <text x="20" y="35" fontSize={isLarge ? 19 : 16} fill="#333" fontWeight="bold">No Stroke</text>
         </g>
       </svg>
     </div>

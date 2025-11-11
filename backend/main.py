@@ -70,9 +70,11 @@ def convert_numpy_types(obj):
 def generate_decision_boundary_plot(stage="initial"):
     """Generate high-quality decision boundary plots that match the dataset"""
     try:
-        # Set matplotlib style for professional look
-        plt.style.use('seaborn-v0_8')
-        fig, ax = plt.subplots(figsize=(10, 8))
+        # Set dark theme style
+        plt.style.use('dark_background')
+        fig, ax = plt.subplots(figsize=(10, 8), facecolor='#1a1a2e')
+        fig.patch.set_facecolor('#1a1a2e')
+        ax.set_facecolor('#1a1a2e')
         
         # Generate realistic Titanic-like data
         np.random.seed(42)
@@ -107,71 +109,80 @@ def generate_decision_boundary_plot(stage="initial"):
         # Generate actual survival labels
         survived = np.random.random(n_samples) < survival_prob
         
-        # Create decision boundaries based on stage
+        # Create decision boundaries based on stage with bright colors
         if stage == "initial":
             # Simple vertical split at Pclass = 2.5
-            ax.axvline(x=2.5, color='#1f77b4', linestyle='--', linewidth=3, alpha=0.8)
-            ax.text(2.6, 75, 'Pclass ≤ 2.5', fontsize=12, color='#1f77b4', fontweight='bold',
-                   bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+            ax.axvline(x=2.5, color='#60a5fa', linestyle='--', linewidth=4, alpha=1.0)
+            ax.text(2.6, 75, 'Pclass ≤ 2.5', fontsize=12, color='#ffffff', fontweight='bold',
+                   bbox=dict(boxstyle="round,pad=0.3", facecolor='#1e293b', alpha=0.9, edgecolor='#60a5fa', linewidth=2))
             
         elif stage == "second_tree":
             # Add horizontal split at Age = 60
-            ax.axvline(x=2.5, color='#1f77b4', linestyle='--', linewidth=3, alpha=0.8)
-            ax.axhline(y=60, color='#ff7f0e', linestyle='--', linewidth=3, alpha=0.8)
-            ax.text(2.6, 75, 'Pclass ≤ 2.5', fontsize=12, color='#1f77b4', fontweight='bold',
-                   bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
-            ax.text(1.2, 62, 'Age ≤ 60', fontsize=12, color='#ff7f0e', fontweight='bold',
-                   bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+            ax.axvline(x=2.5, color='#60a5fa', linestyle='--', linewidth=4, alpha=1.0)
+            ax.axhline(y=60, color='#fbbf24', linestyle='--', linewidth=4, alpha=1.0)
+            ax.text(2.6, 75, 'Pclass ≤ 2.5', fontsize=12, color='#ffffff', fontweight='bold',
+                   bbox=dict(boxstyle="round,pad=0.3", facecolor='#1e293b', alpha=0.9, edgecolor='#60a5fa', linewidth=2))
+            ax.text(1.2, 62, 'Age ≤ 60', fontsize=12, color='#ffffff', fontweight='bold',
+                   bbox=dict(boxstyle="round,pad=0.3", facecolor='#1e293b', alpha=0.9, edgecolor='#fbbf24', linewidth=2))
             
         else:  # final_ensemble
             # Multiple decision boundaries
-            ax.axvline(x=2.5, color='#1f77b4', linestyle='--', linewidth=3, alpha=0.8)
-            ax.axhline(y=60, color='#ff7f0e', linestyle='--', linewidth=3, alpha=0.8)
-            ax.axhline(y=35, color='#2ca02c', linestyle='--', linewidth=3, alpha=0.8)
-            ax.text(2.6, 75, 'Pclass ≤ 2.5', fontsize=12, color='#1f77b4', fontweight='bold',
-                   bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
-            ax.text(1.2, 62, 'Age ≤ 60', fontsize=12, color='#ff7f0e', fontweight='bold',
-                   bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
-            ax.text(1.2, 37, 'Age ≤ 35', fontsize=12, color='#2ca02c', fontweight='bold',
-                   bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+            ax.axvline(x=2.5, color='#60a5fa', linestyle='--', linewidth=4, alpha=1.0)
+            ax.axhline(y=60, color='#fbbf24', linestyle='--', linewidth=4, alpha=1.0)
+            ax.axhline(y=35, color='#34d399', linestyle='--', linewidth=4, alpha=1.0)
+            ax.text(2.6, 75, 'Pclass ≤ 2.5', fontsize=12, color='#ffffff', fontweight='bold',
+                   bbox=dict(boxstyle="round,pad=0.3", facecolor='#1e293b', alpha=0.9, edgecolor='#60a5fa', linewidth=2))
+            ax.text(1.2, 62, 'Age ≤ 60', fontsize=12, color='#ffffff', fontweight='bold',
+                   bbox=dict(boxstyle="round,pad=0.3", facecolor='#1e293b', alpha=0.9, edgecolor='#fbbf24', linewidth=2))
+            ax.text(1.2, 37, 'Age ≤ 35', fontsize=12, color='#ffffff', fontweight='bold',
+                   bbox=dict(boxstyle="round,pad=0.3", facecolor='#1e293b', alpha=0.9, edgecolor='#34d399', linewidth=2))
         
-        # Plot data points with realistic colors
-        colors = ['#d62728' if not s else '#2ca02c' for s in survived]
-        scatter = ax.scatter(pclass, age, c=colors, alpha=0.7, s=50, edgecolors='black', linewidth=0.5)
+        # Plot data points with bright colors for dark theme
+        colors = ['#f87171' if not s else '#4ade80' for s in survived]
+        scatter = ax.scatter(pclass, age, c=colors, alpha=0.8, s=60, edgecolors='#ffffff', linewidth=1)
         
-        # Set professional styling
-        ax.set_xlabel('Passenger Class (Pclass)', fontsize=14, fontweight='bold')
-        ax.set_ylabel('Age (years)', fontsize=14, fontweight='bold')
+        # Set dark theme styling with bright text
+        ax.set_xlabel('Passenger Class (Pclass)', fontsize=14, fontweight='bold', color='#ffffff')
+        ax.set_ylabel('Age (years)', fontsize=14, fontweight='bold', color='#ffffff')
         ax.set_title(f'Decision Boundary Analysis - {stage.replace("_", " ").title()}', 
-                    fontsize=16, fontweight='bold', pad=20)
+                    fontsize=16, fontweight='bold', pad=20, color='#ffffff')
+        
+        # Set axis colors for dark theme
+        ax.tick_params(colors='#ffffff', labelsize=11)
+        ax.spines['bottom'].set_color('#ffffff')
+        ax.spines['top'].set_color('#ffffff')
+        ax.spines['right'].set_color('#ffffff')
+        ax.spines['left'].set_color('#ffffff')
         
         # Set axis limits and ticks
         ax.set_xlim(0.5, 3.5)
         ax.set_ylim(0, 85)
         ax.set_xticks([1, 2, 3])
-        ax.set_xticklabels(['1st Class', '2nd Class', '3rd Class'])
-        ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+        ax.set_xticklabels(['1st Class', '2nd Class', '3rd Class'], color='#ffffff')
+        ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5, color='#ffffff')
         
-        # Add professional legend
+        # Add professional legend with dark theme
         from matplotlib.patches import Patch
         legend_elements = [
-            Patch(facecolor='#2ca02c', label='Survived (1)', alpha=0.7),
-            Patch(facecolor='#d62728', label='Not Survived (0)', alpha=0.7)
+            Patch(facecolor='#4ade80', label='Survived (1)', alpha=0.8),
+            Patch(facecolor='#f87171', label='Not Survived (0)', alpha=0.8)
         ]
         ax.legend(handles=legend_elements, loc='upper right', fontsize=12, 
-                 frameon=True, fancybox=True, shadow=True)
+                 frameon=True, fancybox=True, shadow=True, facecolor='#1e293b', 
+                 edgecolor='#60a5fa', labelcolor='#ffffff')
         
-        # Add statistics text box
+        # Add statistics text box with dark theme
         survival_rate = np.mean(survived) * 100
         stats_text = f'Survival Rate: {survival_rate:.1f}%\nTotal Passengers: {n_samples}'
         ax.text(0.02, 0.98, stats_text, transform=ax.transAxes, fontsize=10,
-               verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", 
-               facecolor='lightblue', alpha=0.8))
+               verticalalignment='top', color='#ffffff',
+               bbox=dict(boxstyle="round,pad=0.5", 
+               facecolor='#1e293b', alpha=0.9, edgecolor='#60a5fa', linewidth=2))
         
-        # Convert to high-quality base64
+        # Convert to high-quality base64 with dark background
         buffer = io.BytesIO()
         plt.savefig(buffer, format='png', dpi=300, bbox_inches='tight', 
-                   facecolor='white', edgecolor='none')
+                   facecolor='#1a1a2e', edgecolor='none')
         buffer.seek(0)
         plot_data = base64.b64encode(buffer.getvalue()).decode()
         plt.close(fig)
@@ -218,9 +229,11 @@ def export_probability_grid(model, X_2d, steps=400):
 def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, stage="early"):
     """Simple scatter plot with decision boundary showing stroke vs no-stroke"""
     try:
-        # Simple matplotlib setup
-        plt.style.use('default')
-        fig, ax = plt.subplots(figsize=(10, 8))
+        # Dark theme matplotlib setup
+        plt.style.use('dark_background')
+        fig, ax = plt.subplots(figsize=(10, 8), facecolor='#1a1a2e')
+        fig.patch.set_facecolor('#1a1a2e')
+        ax.set_facecolor('#1a1a2e')
         
         # Use the actual loaded dataset
         if data_store['X_train'] is None or data_store['y_train'] is None:
@@ -270,9 +283,11 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
         Z = Z.reshape(xx.shape)
         
-        # Plot decision boundary
-        ax.contourf(xx, yy, Z, alpha=0.3, cmap='RdYlBu')
-        ax.contour(xx, yy, Z, colors='black', linewidths=2)
+        # Plot decision boundary with bright colors for dark theme
+        from matplotlib.colors import ListedColormap
+        cmap_light = ListedColormap(['#3b82f6', '#10b981'])
+        ax.contourf(xx, yy, Z, alpha=0.4, cmap=cmap_light)
+        ax.contour(xx, yy, Z, colors='#ffffff', linewidths=3, alpha=0.9)
         
         # Plot the actual data points
         # For large datasets, sample points for visualization clarity, but train on all data
@@ -303,20 +318,34 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
             no_stroke_points_viz = no_stroke_points_viz[np.random.choice(len(no_stroke_points_viz), final_viz_count, replace=False)]
         
         ax.scatter(no_stroke_points_viz[:, 0], no_stroke_points_viz[:, 1], 
-                  c='red', label=f'No Stroke (showing {len(no_stroke_points_viz)} of {len(no_stroke_points)})', alpha=0.7, s=50)
+                  c='#f87171', label=f'No Stroke (showing {len(no_stroke_points_viz)} of {len(no_stroke_points)})', 
+                  alpha=0.9, s=60, edgecolors='#ffffff', linewidth=1.5)
         ax.scatter(stroke_points_viz[:, 0], stroke_points_viz[:, 1], 
-                  c='green', label=f'Stroke (showing {len(stroke_points_viz)} of {len(stroke_points)})', alpha=0.7, s=50)
+                  c='#4ade80', label=f'Stroke (showing {len(stroke_points_viz)} of {len(stroke_points)})', 
+                  alpha=0.9, s=60, edgecolors='#ffffff', linewidth=1.5)
         
-        # Labels and title
-        ax.set_xlabel(x_label, fontsize=12)
-        ax.set_ylabel(y_label, fontsize=12)
-        ax.set_title(f'{algorithm.title()} Decision Boundary (n_estimators={n_estimators})', fontsize=14)
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+        # Labels and title with bright colors
+        ax.set_xlabel(x_label, fontsize=12, fontweight='bold', color='#ffffff')
+        ax.set_ylabel(y_label, fontsize=12, fontweight='bold', color='#ffffff')
+        ax.set_title(f'{algorithm.title()} Decision Boundary (n_estimators={n_estimators})', 
+                    fontsize=14, fontweight='bold', color='#ffffff', pad=15)
         
-        # Convert to base64
+        # Set axis colors
+        ax.tick_params(colors='#ffffff', labelsize=10)
+        ax.spines['bottom'].set_color('#ffffff')
+        ax.spines['top'].set_color('#ffffff')
+        ax.spines['right'].set_color('#ffffff')
+        ax.spines['left'].set_color('#ffffff')
+        
+        # Legend with dark theme
+        legend = ax.legend(facecolor='#1e293b', edgecolor='#60a5fa', framealpha=0.9, 
+                          fontsize=11, labelcolor='#ffffff', frameon=True)
+        ax.grid(True, alpha=0.2, color='#ffffff', linewidth=0.5)
+        
+        # Convert to base64 with dark background
         buffer = io.BytesIO()
-        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight', 
+                   facecolor='#1a1a2e', edgecolor='none')
         buffer.seek(0)
         plot_data = base64.b64encode(buffer.getvalue()).decode()
         plt.close(fig)
@@ -332,10 +361,12 @@ def generate_3d_decision_boundary(algorithm="adaboost", n_estimators=1, stage="e
     try:
         from mpl_toolkits.mplot3d import Axes3D
         
-        # Use enhanced matplotlib styling
-        plt.style.use('seaborn-v0_8')
-        fig = plt.figure(figsize=(16, 12))
+        # Use dark theme matplotlib styling
+        plt.style.use('dark_background')
+        fig = plt.figure(figsize=(16, 12), facecolor='#1a1a2e')
+        fig.patch.set_facecolor('#1a1a2e')
         ax = fig.add_subplot(111, projection='3d')
+        ax.set_facecolor('#1a1a2e')
         
         # Use the actual loaded dataset
         if data_store['X_train'] is None or data_store['y_train'] is None:
@@ -393,37 +424,52 @@ def generate_3d_decision_boundary(algorithm="adaboost", n_estimators=1, stage="e
         # Train the model on the 3D features
         model.fit(X_3d, y_labels)
         
-        # Create 3D scatter plot
-        colors = ['#e74c3c' if not s else '#27ae60' for s in y_labels]
-        scatter = ax.scatter(X_3d[:, 0], X_3d[:, 1], X_3d[:, 2], c=colors, alpha=0.7, s=60)
+        # Create 3D scatter plot with bright colors
+        colors = ['#f87171' if not s else '#4ade80' for s in y_labels]
+        scatter = ax.scatter(X_3d[:, 0], X_3d[:, 1], X_3d[:, 2], c=colors, alpha=0.8, s=70, 
+                           edgecolors='#ffffff', linewidth=1)
         
-        # Set labels and title
-        ax.set_xlabel(feature_labels[0], fontsize=14, fontweight='bold')
-        ax.set_ylabel(feature_labels[1], fontsize=14, fontweight='bold')
-        ax.set_zlabel(feature_labels[2], fontsize=14, fontweight='bold')
+        # Set labels and title with bright colors
+        ax.set_xlabel(feature_labels[0], fontsize=14, fontweight='bold', color='#ffffff')
+        ax.set_ylabel(feature_labels[1], fontsize=14, fontweight='bold', color='#ffffff')
+        ax.set_zlabel(feature_labels[2], fontsize=14, fontweight='bold', color='#ffffff')
         ax.set_title(f'3D {algorithm.title()} Decision Boundary - {boundary_label}', 
-                    fontsize=16, fontweight='bold', pad=20)
+                    fontsize=16, fontweight='bold', pad=20, color='#ffffff')
         
-        # Add legend
+        # Set tick colors
+        ax.tick_params(colors='#ffffff', labelsize=11)
+        ax.xaxis.pane.fill = False
+        ax.yaxis.pane.fill = False
+        ax.zaxis.pane.fill = False
+        ax.xaxis.pane.set_edgecolor('#ffffff')
+        ax.yaxis.pane.set_edgecolor('#ffffff')
+        ax.zaxis.pane.set_edgecolor('#ffffff')
+        ax.xaxis.pane.set_alpha(0.1)
+        ax.yaxis.pane.set_alpha(0.1)
+        ax.zaxis.pane.set_alpha(0.1)
+        
+        # Add legend with dark theme
         from matplotlib.patches import Patch
         legend_elements = [
-            Patch(facecolor='#27ae60', label='Stroke (1)', alpha=0.9),
-            Patch(facecolor='#e74c3c', label='No Stroke (0)', alpha=0.9)
+            Patch(facecolor='#4ade80', label='Stroke (1)', alpha=0.9),
+            Patch(facecolor='#f87171', label='No Stroke (0)', alpha=0.9)
         ]
-        ax.legend(handles=legend_elements, loc='upper right', fontsize=12)
+        ax.legend(handles=legend_elements, loc='upper right', fontsize=12,
+                 facecolor='#1e293b', edgecolor='#60a5fa', labelcolor='#ffffff', framealpha=0.9)
         
         # Add statistics
         stroke_rate = np.mean(y_labels) * 100
         model_accuracy = model.score(X_3d, y_labels)
         stats_text = f'Stroke Rate: {stroke_rate:.1f}%\nTotal Patients: {len(y_labels)}\nModel Accuracy: {model_accuracy:.1%}'
         ax.text2D(0.02, 0.98, stats_text, transform=ax.transAxes, fontsize=10,
-                 verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", 
-                 facecolor='lightblue', alpha=0.8))
+                 verticalalignment='top', color='#ffffff',
+                 bbox=dict(boxstyle="round,pad=0.5", 
+                 facecolor='#1e293b', alpha=0.9, edgecolor='#60a5fa', linewidth=2))
         
-        # Convert to high-quality base64
+        # Convert to high-quality base64 with dark background
         buffer = io.BytesIO()
         plt.savefig(buffer, format='png', dpi=300, bbox_inches='tight', 
-                   facecolor='white', edgecolor='none')
+                   facecolor='#1a1a2e', edgecolor='none')
         buffer.seek(0)
         plot_data = base64.b64encode(buffer.getvalue()).decode()
         plt.close(fig)

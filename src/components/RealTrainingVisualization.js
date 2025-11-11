@@ -139,10 +139,10 @@ const RealTrainingVisualization = ({ algorithm, isTraining, progressData }) => {
           <line x1="50" y1="50" x2="50" y2="350" stroke="#333" strokeWidth="2"/>
           
           {/* Labels */}
-          <text x="300" y="390" textAnchor="middle" fontSize="14" fill="#333" fontWeight="bold">
+          <text x="300" y="390" textAnchor="middle" fontSize="22" fill="#333" fontWeight="bold">
             Age (actual values)
           </text>
-          <text x="25" y="200" textAnchor="middle" fontSize="14" fill="#333" fontWeight="bold"
+          <text x="25" y="200" textAnchor="middle" fontSize="22" fill="#333" fontWeight="bold"
                 transform="rotate(-90, 25, 200)">
             Glucose Level (actual values)
           </text>

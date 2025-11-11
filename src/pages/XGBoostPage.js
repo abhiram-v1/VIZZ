@@ -12,7 +12,7 @@ const XGBoostPage = () => {
     <AlgorithmPage
       algorithm="xgboost"
       title="XGBoost Classifier"
-      description="Extreme Gradient Boosting - an optimized gradient boosting framework that's highly efficient and scalable, with built-in regularization."
+      description="Extreme Gradient Boosting - an advanced gradient boosting algorithm that achieves the perfect balance of speed and accuracy, optimized for real-world performance with parallel processing and regularization."
       defaultParams={defaultParams}
     />
   );

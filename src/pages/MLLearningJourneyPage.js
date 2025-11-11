@@ -10,18 +10,24 @@ const MLLearningJourneyPage = () => {
   const [isRunningExperiment, setIsRunningExperiment] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [animationStep, setAnimationStep] = useState(0);
-  const [activeBoostingTab, setActiveBoostingTab] = useState('overview'); // 'overview', 'adaboost', 'gradient', 'xgboost', 'comparison'
+  const [activeBoostingTab, setActiveBoostingTab] = useState('overview'); // 'overview', 'adaboost', 'gradient', 'xgboost'
   const [adaboostStep, setAdaboostStep] = useState(0); // For AdaBoost step navigation
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const sectionRefs = useRef([]);
   const contentRef = useRef(null);
+  const searchInputRef = useRef(null);
 
-  // Learning journey sections
+  // Alex's Learning Journey - Story-Driven Sections
   const learningSections = [
     {
       id: 'ml-intro',
-      title: 'What is Machine Learning?',
+      title: 'Chapter 1: Alex Discovers Machine Learning',
       titleIcon: 'ml',
-      content: 'Machine Learning helps us learn patterns from student data (test scores, homework grades, attendance, etc.) so we can predict academic performance reliably.',
+      chapterNumber: 1,
+      storyOpening: 'Meet Alex, a curious student who just got his first dataset about student performance. "How can I predict who will succeed?" Alex wonders. This is where Alex\'s Machine Learning journey begins...',
+      content: 'Alex learns that Machine Learning helps discover patterns in data—just like a teacher who, after seeing thousands of student cases, can predict performance. Alex realizes this could solve his problem of predicting student success!',
       analogy: 'Like a teacher learning patterns after seeing thousands of student cases',
       concepts: [
         {
@@ -71,15 +77,17 @@ const MLLearningJourneyPage = () => {
     },
     {
       id: 'decision-trees',
-      title: 'Decision Trees: The Foundation',
+      title: 'Chapter 2: Alex Builds His First Decision Tree',
       titleIcon: 'tree',
-      content: 'Decision trees split students by simple questions (thresholds) to reach a performance decision. They\'re the building blocks of many boosted models.',
-      analogy: 'Like asking questions in a classroom: "Are you taller than 5 feet?" → "Do you play basketball?" → "Are you on the basketball team?"',
+      chapterNumber: 2,
+      storyOpening: 'Alex faces a challenge: "I need to make predictions, but where do I start?" Alex discovers Decision Trees—the perfect first step. Like deciding whether to bring an umbrella, Alex learns to ask simple questions that lead to smart decisions.',
+      content: 'Alex builds his first Decision Tree, learning to ask simple yes/no questions one at a time to reach predictions. Just like deciding whether to bring an umbrella based on weather conditions! Alex realizes these trees are the foundation for more powerful techniques...',
+      analogy: 'Like deciding whether to go out: "Is it raining?" → If yes, check "Do we have umbrella?" → Final decision: Go out or stay home',
       concepts: [
         {
           term: 'Entropy',
           description: 'How mixed or uncertain the groups are',
-          example: 'Like a classroom where half the students are tall and half are short = very mixed (high entropy). But if almost everyone is tall = not mixed at all (low entropy)',
+          example: 'Like checking the weather where half the days are rainy and half are sunny = very mixed (high entropy). But if almost every day is rainy = not mixed at all (low entropy)',
           icon: (
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="3" y="3" width="18" height="18" rx="2" fill="#ef4444" opacity="0.1"/>
@@ -95,7 +103,7 @@ const MLLearningJourneyPage = () => {
         {
           term: 'Information Gain',
           description: 'How much clearer things get after asking a question',
-          example: 'Asking "Are you taller than 5 feet?" in that classroom separates tall and short students really well - that\'s big information gain! A bad question like "Do you like pizza?" wouldn\'t help sort by height at all',
+          example: 'Asking "Is it raining?" helps decide about bringing an umbrella really well - that\'s big information gain! A bad question like "Is it Tuesday?" wouldn\'t help predict the weather at all',
           icon: (
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3 3V21H21" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round"/>
@@ -110,7 +118,7 @@ const MLLearningJourneyPage = () => {
         {
           term: 'Splitting',
           description: 'Dividing the group into smaller subgroups using a question',
-          example: 'In our classroom, we split by asking "Are you taller than 5 feet?" → creates two groups: tall students and short students. Then we can ask more questions to split those groups further',
+          example: 'For weather decisions, we split by asking "Is it raining?" → creates two groups: rainy days and not-rainy days. Then we can ask more questions like "Is it windy?" to split those groups further',
           icon: (
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="#06b6d4"/>
@@ -125,9 +133,11 @@ const MLLearningJourneyPage = () => {
     },
     {
       id: 'ensemble-learning',
-      title: 'Ensemble Learning: Many Trees, Better Decisions',
+      title: 'Chapter 3: Alex Discovers the Power of Teams',
       titleIcon: 'team',
-      content: 'Rather than one tree, we combine many trees and let them vote. This reduces individual biases and improves reliability on student performance predictions.',
+      chapterNumber: 3,
+      storyOpening: 'Alex realizes his single Decision Tree makes mistakes. "What if I could combine multiple trees?" Alex wonders. This leads to a breakthrough: Ensemble Learning—where many trees work together, just like a team of teachers giving opinions!',
+      content: 'Alex learns that combining many trees and letting them vote creates better predictions than any single tree alone. This reduces individual biases and dramatically improves accuracy—like multiple teachers collaborating to determine the best grade!',
       analogy: 'Like multiple teachers giving opinions and the consensus guiding the final grade',
       concepts: [
         {
@@ -176,14 +186,16 @@ const MLLearningJourneyPage = () => {
     },
     {
       id: 'boosting-algorithms',
-      title: 'Boosting: Focus on What Was Missed',
+      title: 'Chapter 4: Alex Learns from Mistakes',
       titleIcon: 'rocket',
-      content: 'Boosting builds trees one after another. Each new tree focuses more on examples that were previously misclassified, steadily reducing errors.',
+      chapterNumber: 4,
+      storyOpening: 'Alex notices something powerful: "What if each new tree focused on fixing the mistakes of the previous ones?" This is Boosting—where models learn from their errors, just like reviewing test questions you got wrong and studying those patterns more carefully.',
+      content: 'Alex discovers Boosting, where trees are built one after another. Each new tree focuses more on examples that were previously misclassified, steadily reducing errors. Alex realizes this adaptive approach is the key to building truly powerful models!',
       analogy: 'Like reviewing test questions you got wrong last time and studying those patterns more carefully',
       concepts: [
         {
           algorithm: 'AdaBoost',
-          description: 'Builds an ensemble of weak learners (decision stumps) that adaptively focus on previously misclassified examples',
+          description: 'Builds an ensemble of weak learners (simple decision trees) that adaptively focus on previously misclassified examples',
           example: 'If students who scored high on test 1 were misclassified by Tree 1, Tree 2 is forced to pay more attention to them',
           icon: (
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -243,9 +255,11 @@ const MLLearningJourneyPage = () => {
     },
     {
       id: 'experiment',
-      title: 'Let\'s Experiment: Compare the Algorithms!',
+      title: 'Chapter 5: Alex Puts It All Together',
       titleIcon: 'experiment',
-      content: 'Now let\'s see how different algorithms perform on real data. We\'ll train multiple models and compare their accuracy, precision, and recall.',
+      chapterNumber: 5,
+      storyOpening: 'Alex has learned so much! Now it\'s time to put everything together. "Which algorithm works best for my problem?" Alex decides to run experiments, comparing different methods—just like testing different study methods to find what works best.',
+      content: 'Alex conducts his first comprehensive experiment, training multiple models and comparing their performance. This is where theory meets practice, and Alex discovers which techniques work best for real-world predictions!',
       analogy: 'Like testing different study methods to see which one helps students learn best',
       experiment: true
     }
@@ -284,35 +298,38 @@ const MLLearningJourneyPage = () => {
     // Clear previous tree
     d3.select("#decision-tree-svg").selectAll("*").remove();
 
-    // Tree data for classroom/height decision tree (consistent with entropy/info gain examples)
+    // Tree data for weather/umbrella decision tree
     const treeData = {
-      name: "Are you taller than 5 feet?",
+      name: "Is it raining?",
       children: [
         {
-          name: "Do you play basketball?",
+          name: "Do we have umbrella?",
           branchLabel: "Yes",
           children: [
-            { name: "Tall athlete group", icon: "🏀" },
-            { name: "Tall non-athlete group", icon: "📚" }
+            { name: "Go out", icon: "🚶" },
+            { name: "Don't go", icon: "🏠" }
           ]
         },
         {
-          name: "Short student group",
+          name: "Go out",
           branchLabel: "No",
-          icon: "👥"
+          icon: "🚶"
         }
       ]
     };
 
-    const width = 1200;
-    const height = 700;
+    const width = 2000;
+    const height = 1200;
     
     const svgElement = d3.select("#decision-tree-svg")
       .append("svg")
-      .attr("viewBox", [0, 0, width, height]);
+      .attr("viewBox", [0, 0, width, height])
+      .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // Add gradient definition
+    // Add gradient definitions with enhanced colors
     const defs = svgElement.append("defs");
+    
+    // Main node gradient - more vibrant purple-blue gradient
     const gradient = defs.append("linearGradient")
       .attr("id", "nodeGradient")
       .attr("x1", "0%")
@@ -322,34 +339,71 @@ const MLLearningJourneyPage = () => {
     
     gradient.append("stop")
       .attr("offset", "0%")
+      .attr("stop-color", "#7c3aed");
+    
+    gradient.append("stop")
+      .attr("offset", "50%")
       .attr("stop-color", "#667eea");
     
     gradient.append("stop")
       .attr("offset", "100%")
-      .attr("stop-color", "#764ba2");
+      .attr("stop-color", "#8b5cf6");
+    
+    // Glow filter for nodes
+    const glowFilter = defs.append("filter")
+      .attr("id", "glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+    
+    glowFilter.append("feGaussianBlur")
+      .attr("stdDeviation", "4")
+      .attr("result", "coloredBlur");
+    
+    const feMerge = glowFilter.append("feMerge");
+    feMerge.append("feMergeNode").attr("in", "coloredBlur");
+    feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+    
+    // Link gradient
+    const linkGradient = defs.append("linearGradient")
+      .attr("id", "linkGradient")
+      .attr("x1", "0%")
+      .attr("y1", "0%")
+      .attr("x2", "100%")
+      .attr("y2", "0%");
+    
+    linkGradient.append("stop")
+      .attr("offset", "0%")
+      .attr("stop-color", "#667eea")
+      .attr("stop-opacity", "0.9");
+    
+    linkGradient.append("stop")
+      .attr("offset", "100%")
+      .attr("stop-color", "#8b5cf6")
+      .attr("stop-opacity", "0.9");
 
     const svg = svgElement
       .append("g")
-      .attr("transform", "translate(150,50)");
+      .attr("transform", "translate(250,100)");
 
     // Vertical tree layout - swap width and height for vertical orientation
-    // Increased size significantly to add more spacing between nodes
-    // Increased horizontal spacing (width - 300) and vertical spacing (height - 100)
+    // Significantly increased spacing between branches and nodes
     const treeLayout = d3.tree()
-      .size([width - 300, height - 150])
+      .size([width - 500, height - 200])
       .separation((a, b) => {
-        // Add extra separation between nodes
-        // Siblings get more space, parents and children get more vertical space
+        // Add much more separation between nodes
+        // Siblings get significantly more space, parents and children get more vertical space
         if (a.parent === b.parent) {
-          return 1.5; // More space between siblings
+          return 3.0; // Much more space between siblings (branches)
         }
-        return 1.2; // More space between parent and child
+        return 2.5; // Much more space between parent and child
       });
     
     const root = d3.hierarchy(treeData);
     treeLayout(root);
 
-    // Links - for vertical tree, swap x and y coordinates
+    // Links - for vertical tree, with enhanced styling
     svg.selectAll(".link")
       .data(root.links())
       .join("path")
@@ -357,20 +411,37 @@ const MLLearningJourneyPage = () => {
       .attr("d", d3.linkVertical()
         .x(d => d.x)
         .y(d => d.y))
-      .attr("stroke-width", 3)
-      .attr("stroke", "#667eea")
-      .attr("opacity", 0.7)
-      .attr("fill", "none");
+      .attr("stroke-width", 4)
+      .attr("stroke", "url(#linkGradient)")
+      .attr("opacity", 0.8)
+      .attr("fill", "none")
+      .style("filter", "drop-shadow(0 2px 4px rgba(102, 126, 234, 0.4))")
+      .on("mouseenter", function() {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr("stroke-width", 5)
+          .attr("opacity", 1)
+          .style("filter", "drop-shadow(0 3px 6px rgba(102, 126, 234, 0.6))");
+      })
+      .on("mouseleave", function() {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr("stroke-width", 4)
+          .attr("opacity", 0.8)
+          .style("filter", "drop-shadow(0 2px 4px rgba(102, 126, 234, 0.4))");
+      });
 
-    // Calculate node dimensions based on text length
+    // Calculate node dimensions - larger boxes with better spacing
     const getNodeWidth = (text) => {
-      const baseWidth = 180;
-      const minWidth = 200;
-      const charWidth = 8;
-      return Math.max(minWidth, Math.min(baseWidth + text.length * charWidth, 280));
+      const baseWidth = 300;
+      const minWidth = 350;
+      const charWidth = 15;
+      return Math.max(minWidth, Math.min(baseWidth + text.length * charWidth, 500));
     };
 
-    const getNodeHeight = (hasIcon) => hasIcon ? 60 : 50;
+    const getNodeHeight = (hasIcon) => hasIcon ? 130 : 110;
 
     // Nodes - for vertical tree, swap x and y coordinates
     const node = svg.selectAll(".node")
@@ -385,52 +456,65 @@ const MLLearningJourneyPage = () => {
       const nodeHeight = getNodeHeight(d.data.icon);
       const nodeGroup = d3.select(this);
       
-      // Create rectangle
+      // Create rectangle with enhanced styling
       const rect = nodeGroup.append("rect")
         .attr("x", -nodeWidth / 2)
         .attr("y", -nodeHeight / 2)
         .attr("width", nodeWidth)
         .attr("height", nodeHeight)
         .attr("fill", "url(#nodeGradient)")
-        .attr("stroke", "rgba(255, 255, 255, 0.3)")
-        .attr("stroke-width", 2)
-        .attr("rx", 12)
-        .attr("ry", 12)
+        .attr("stroke", "rgba(255, 255, 255, 0.4)")
+        .attr("stroke-width", 2.5)
+        .attr("rx", 16)
+        .attr("ry", 16)
         .style("cursor", "pointer")
+        .style("filter", "drop-shadow(0 4px 12px rgba(102, 126, 234, 0.5))")
         .on("mouseover", function() {
           d3.select(this)
             .transition()
             .duration(200)
-            .attr("fill", "#764ba2")
-            .attr("stroke", "rgba(255, 255, 255, 0.5)")
-            .attr("stroke-width", 3);
+            .attr("fill", "#8b5cf6")
+            .attr("stroke", "rgba(255, 255, 255, 0.7)")
+            .attr("stroke-width", 3.5)
+            .style("filter", "drop-shadow(0 6px 20px rgba(139, 92, 246, 0.7))")
+            .attr("rx", 18)
+            .attr("ry", 18);
         })
         .on("mouseout", function() {
           d3.select(this)
             .transition()
             .duration(200)
             .attr("fill", "url(#nodeGradient)")
-            .attr("stroke", "rgba(255, 255, 255, 0.3)")
-            .attr("stroke-width", 2);
+            .attr("stroke", "rgba(255, 255, 255, 0.4)")
+            .attr("stroke-width", 2.5)
+            .style("filter", "drop-shadow(0 4px 12px rgba(102, 126, 234, 0.5))")
+            .attr("rx", 16)
+            .attr("ry", 16);
         });
 
       // Add icon if available
       if (d.data.icon) {
         nodeGroup.append("text")
           .attr("text-anchor", "middle")
-          .attr("dy", -8)
-          .attr("font-size", "24px")
+          .attr("dy", -20)
+          .attr("font-size", "120px")
+          .style("font-size", "120px")
           .text(d.data.icon);
       }
 
-      // Add text
+      // Add text - much larger font size with better styling and shadow
       nodeGroup.append("text")
         .attr("text-anchor", "middle")
-        .attr("dy", d.data.icon ? 8 : 5)
+        .attr("dy", d.data.icon ? 35 : 18)
         .attr("fill", "#ffffff")
-        .attr("font-size", "15px")
-        .attr("font-weight", "600")
+        .attr("font-size", "72px")
+        .attr("font-weight", "700")
+        .attr("font-family", "Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif")
+        .style("font-size", "72px")
+        .style("font-weight", "700")
         .style("pointer-events", "none")
+        .style("text-shadow", "0 2px 4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.7)")
+        .style("letter-spacing", "0.8px")
         .text(d.data.name);
     });
 
@@ -450,33 +534,57 @@ const MLLearningJourneyPage = () => {
           labelText = d.target.data.branchLabel;
         } else if (d.target.parent && d.target.parent.children) {
           const index = d.target.parent.children.indexOf(d.target);
-          if (d.target.parent.data.name === "Do you play basketball?") {
+          if (d.target.parent.data.name === "Is it raining?") {
+            labelText = index === 0 ? "Yes" : "No";
+          } else if (d.target.parent.data.name === "Do we have umbrella?") {
             labelText = index === 0 ? "Yes" : "No";
           }
         }
         
         if (!labelText) return;
         
-        // Create background circle/ellipse for label
+        // Create background circle/ellipse for label with enhanced styling
         labelGroup.append("ellipse")
-          .attr("cx", midX + 35)
+          .attr("cx", midX + 60)
           .attr("cy", midY)
-          .attr("rx", 22)
-          .attr("ry", 14)
+          .attr("rx", 50)
+          .attr("ry", 35)
           .attr("fill", "#667eea")
-          .attr("stroke", "rgba(255, 255, 255, 0.5)")
-          .attr("stroke-width", 2)
-          .attr("opacity", 0.9);
+          .attr("stroke", "rgba(255, 255, 255, 0.6)")
+          .attr("stroke-width", 3.5)
+          .attr("opacity", 0.95)
+          .style("filter", "drop-shadow(0 3px 8px rgba(102, 126, 234, 0.6))")
+          .on("mouseenter", function() {
+            d3.select(this)
+              .transition()
+              .duration(200)
+              .attr("rx", 52)
+              .attr("ry", 37)
+              .attr("opacity", 1)
+              .style("filter", "drop-shadow(0 4px 10px rgba(102, 126, 234, 0.8))");
+          })
+          .on("mouseleave", function() {
+            d3.select(this)
+              .transition()
+              .duration(200)
+              .attr("rx", 50)
+              .attr("ry", 35)
+              .attr("opacity", 0.95)
+              .style("filter", "drop-shadow(0 3px 8px rgba(102, 126, 234, 0.6))");
+          });
         
-        // Add label text
+        // Add label text - larger font size with shadow
         labelGroup.append("text")
-          .attr("x", midX + 35)
+          .attr("x", midX + 60)
           .attr("y", midY)
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
           .attr("fill", "#ffffff")
-          .attr("font-size", "13px")
-          .attr("font-weight", "700")
+          .attr("font-size", "36px")
+          .attr("font-weight", "800")
+          .attr("font-family", "Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif")
+          .style("text-shadow", "0 2px 4px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8)")
+          .style("letter-spacing", "0.8px")
           .text(labelText);
       });
 
@@ -485,6 +593,188 @@ const MLLearningJourneyPage = () => {
       d3.select("#decision-tree-svg").selectAll("*").remove();
     };
   }, [currentSection]);
+
+  // Build searchable index from all sections and concepts
+  const buildSearchIndex = () => {
+    const index = [];
+    learningSections.forEach((section, sectionIndex) => {
+      // Add section title
+      index.push({
+        type: 'section',
+        title: section.title,
+        sectionIndex,
+        id: section.id,
+        matchText: section.title.toLowerCase()
+      });
+      
+      // Add section content and analogy
+      if (section.content) {
+        index.push({
+          type: 'section',
+          title: section.title,
+          sectionIndex,
+          id: section.id,
+          matchText: section.content.toLowerCase()
+        });
+      }
+      if (section.analogy) {
+        index.push({
+          type: 'section',
+          title: section.title,
+          sectionIndex,
+          id: section.id,
+          matchText: section.analogy.toLowerCase()
+        });
+      }
+      
+      // Add concepts
+      if (section.concepts) {
+        section.concepts.forEach((concept, conceptIndex) => {
+          const conceptName = concept.term || concept.type || concept.algorithm || '';
+          const conceptDesc = concept.description || '';
+          
+          // For boosting algorithms, add algorithm-specific entries with tab info
+          if (section.id === 'boosting-algorithms' && concept.algorithm) {
+            const algoName = concept.algorithm.toLowerCase();
+            // Map algorithm names to tab names
+            let tabName = null;
+            if (algoName.includes('adaboost')) {
+              tabName = 'adaboost';
+            } else if (algoName.includes('gradient')) {
+              tabName = 'gradient';
+            } else if (algoName.includes('xgboost')) {
+              tabName = 'xgboost';
+            }
+            
+            // Add multiple variations for better matching
+            const variations = [
+              conceptName.toLowerCase(),
+              algoName,
+              algoName.replace(/\s+/g, ''), // "gradient boosting" -> "gradientboosting"
+              algoName.replace(/\s+/g, '-'), // "gradient boosting" -> "gradient-boosting"
+            ];
+            
+            variations.forEach(variation => {
+              index.push({
+                type: 'concept',
+                title: conceptName,
+                sectionIndex,
+                conceptIndex,
+                id: section.id,
+                description: conceptDesc,
+                matchText: `${variation} ${conceptDesc}`.toLowerCase(),
+                tabName: tabName // Store tab name for navigation
+              });
+            });
+          } else {
+            // Regular concept
+            index.push({
+              type: 'concept',
+              title: conceptName,
+              sectionIndex,
+              conceptIndex,
+              id: section.id,
+              description: conceptDesc,
+              matchText: `${conceptName} ${conceptDesc}`.toLowerCase()
+            });
+          }
+        });
+      }
+    });
+    return index;
+  };
+
+  // Search functionality
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    const index = buildSearchIndex();
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Normalize query (remove spaces, hyphens for better matching)
+    const normalizedQuery = query.replace(/\s+/g, '').replace(/-/g, '');
+    
+    const results = index.filter(item => {
+      const matchText = item.matchText;
+      const normalizedMatch = matchText.replace(/\s+/g, '').replace(/-/g, '');
+      const titleMatch = item.title.toLowerCase();
+      const normalizedTitle = titleMatch.replace(/\s+/g, '').replace(/-/g, '');
+      
+      return matchText.includes(query) || 
+             normalizedMatch.includes(normalizedQuery) ||
+             titleMatch.includes(query) ||
+             normalizedTitle.includes(normalizedQuery);
+    })
+    // Remove duplicates based on sectionIndex, conceptIndex, and tabName
+    .filter((item, index, self) => 
+      index === self.findIndex(t => 
+        t.sectionIndex === item.sectionIndex && 
+        t.conceptIndex === item.conceptIndex &&
+        t.tabName === item.tabName
+      )
+    )
+    // Prioritize exact matches and algorithm-specific results
+    .sort((a, b) => {
+      const aExact = a.title.toLowerCase() === query || a.title.toLowerCase().includes(query);
+      const bExact = b.title.toLowerCase() === query || b.title.toLowerCase().includes(query);
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      if (a.tabName && !b.tabName) return -1;
+      if (!a.tabName && b.tabName) return 1;
+      return 0;
+    })
+    .slice(0, 10); // Limit to 10 results
+
+    setSearchResults(results);
+    setShowSearchResults(results.length > 0);
+  }, [searchQuery]);
+
+  // Navigate to search result
+  const handleSearchSelect = (result) => {
+    setCurrentSection(result.sectionIndex);
+    
+    // If it's a boosting algorithm concept, set the appropriate tab
+    if (result.id === 'boosting-algorithms' && result.tabName) {
+      setActiveBoostingTab(result.tabName);
+      if (result.tabName === 'adaboost') {
+        setAdaboostStep(0); // Reset AdaBoost step when navigating
+      }
+    }
+    
+    setSearchQuery('');
+    setShowSearchResults(false);
+    
+    // Small delay to ensure tab is set before scrolling
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (contentRef.current) {
+        contentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl/Cmd + K to focus search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      // Escape to close search
+      if (e.key === 'Escape') {
+        setShowSearchResults(false);
+        searchInputRef.current?.blur();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const runExperiment = async () => {
     setIsRunningExperiment(true);
@@ -544,17 +834,94 @@ const MLLearningJourneyPage = () => {
 
   return (
     <div className={`ml-learning-journey ${isVisible ? 'visible' : ''}`}>
-      {/* Hero Section - Only show on first section */}
+      {/* Search Navbar */}
+      <div className="ml-search-navbar">
+        <div className="search-container">
+          <div className="search-input-wrapper">
+            <Icon name="search" size={20} className="search-icon" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="search-input"
+              placeholder="Search concepts... (Ctrl+K)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => searchQuery && setShowSearchResults(true)}
+            />
+            {searchQuery && (
+              <button 
+                className="search-clear"
+                onClick={() => {
+                  setSearchQuery('');
+                  setShowSearchResults(false);
+                  searchInputRef.current?.focus();
+                }}
+              >
+                <Icon name="close" size={16} />
+              </button>
+            )}
+          </div>
+          {showSearchResults && searchResults.length > 0 && (
+            <div className="search-results-dropdown">
+              {searchResults.map((result, idx) => (
+                <div
+                  key={idx}
+                  className="search-result-item"
+                  onClick={() => handleSearchSelect(result)}
+                >
+                  <div className="search-result-header">
+                    <Icon 
+                      name={result.type === 'section' ? 'target' : 'brain'} 
+                      size={16} 
+                      className="search-result-icon"
+                    />
+                    <span className="search-result-title">{result.title}</span>
+                    <span className="search-result-type">{result.type}</span>
+                  </div>
+                  {result.description && (
+                    <div className="search-result-description">{result.description}</div>
+                  )}
+                  <div className="search-result-section">
+                    {learningSections[result.sectionIndex]?.title}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {showSearchResults && searchQuery && searchResults.length === 0 && (
+            <div className="search-results-dropdown">
+              <div className="search-result-empty">
+                <Icon name="search" size={24} />
+                <p>No results found for "{searchQuery}"</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Story Hero Section - Only show on first section */}
       {currentSection === 0 && (
-        <div className="hero-section animated-intro">
+        <div className="hero-section animated-intro story-hero">
           <div className="hero-content">
+            <div className="story-character-intro">
+              <div className="character-avatar">👤</div>
+              <h2 className="character-name">Meet Alex</h2>
+            </div>
             <h1 className="hero-title animated-title">
-              <span className="hero-title-main slide-in-right">Machine Learning</span>
+              <span className="hero-title-main slide-in-right">Alex's Machine Learning</span>
               <span className="hero-title-sub slide-in-right-delay">Journey</span>
             </h1>
-            <p className="hero-description fade-in">
-              Learn core ML concepts using one consistent context: predicting student performance from academic data — from decision trees to advanced boosting.
+            <p className="hero-description fade-in story-intro-text">
+              Follow Alex, a curious student, as he discovers Machine Learning step by step. Each chapter tells the story of how Alex learns to predict student performance—from first concepts to advanced techniques. Let's join Alex on this journey!
             </p>
+            <div className="story-preview fade-in-delay">
+              <p className="story-hook">
+                <strong>Alex's Problem:</strong> "I have data about students—their test scores, homework grades, and attendance. Can I predict who will succeed? Where do I even start?"
+              </p>
+              <p className="story-promise">
+                Join Alex as he discovers Decision Trees, learns about Ensemble Learning, masters Boosting algorithms, and finally conducts experiments to solve this challenge!
+              </p>
+            </div>
             <div className="hero-stats fade-in-delay">
               <div className="stat-item">
                 <div className="stat-number">5</div>
@@ -613,11 +980,11 @@ const MLLearningJourneyPage = () => {
                   <animate attributeName="opacity" values="0;1;1" dur="1s" begin="2s" fill="freeze"/>
                 </circle>
                 {/* Animated labels */}
-                <text x="50" y="270" fill="rgba(255,255,255,0.7)" fontSize="12" textAnchor="middle" className="graph-label">
+                <text x="50" y="270" fill="rgba(255,255,255,0.7)" fontSize="20" textAnchor="middle" className="graph-label">
                   <animate attributeName="opacity" values="0;1" dur="0.5s" begin="0.5s" fill="freeze"/>
                   Trees
                 </text>
-                <text x="350" y="120" fill="rgba(255,255,255,0.7)" fontSize="12" textAnchor="middle" className="graph-label">
+                <text x="350" y="120" fill="rgba(255,255,255,0.7)" fontSize="20" textAnchor="middle" className="graph-label">
                   <animate attributeName="opacity" values="0;1" dur="0.5s" begin="2s" fill="freeze"/>
                   Boosting
                 </text>
@@ -642,12 +1009,12 @@ const MLLearningJourneyPage = () => {
         </div>
       )}
 
-      {/* Progress Bar */}
+      {/* Story Progress Bar */}
       <div className={`journey-progress ${isVisible ? 'animate-in' : ''}`}>
         <div className="progress-header">
-          <h3>Learning Progress</h3>
+          <h3>Alex's Journey Progress</h3>
           <div className="progress-stats">
-            <span className="current-step">{currentSection + 1}</span>
+            <span className="current-step">Chapter {currentStep.chapterNumber || currentSection + 1}</span>
             <span className="total-steps">/ {learningSections.length}</span>
           </div>
         </div>
@@ -669,6 +1036,17 @@ const MLLearningJourneyPage = () => {
             {currentStep.titleIcon && <Icon name={currentStep.titleIcon} size={32} style={{ marginRight: '10px', verticalAlign: 'middle' }} />}
             {currentStep.title}
           </h1>
+          
+          {/* Story Opening */}
+          {currentStep.storyOpening && (
+            <div className={`story-opening ${animationStep ? 'animate-in' : ''}`}>
+              <div className="story-narrative">
+                <div className="story-quote-icon">💭</div>
+                <p className="story-text">{currentStep.storyOpening}</p>
+              </div>
+            </div>
+          )}
+          
           <p className={`section-description ${animationStep ? 'animate-in' : ''}`}>
             {currentStep.content}
           </p>
@@ -676,7 +1054,7 @@ const MLLearningJourneyPage = () => {
             <div className={`analogy-box ${animationStep ? 'animate-in' : ''}`}>
               <div className="analogy-icon"><Icon name="lightbulb" size={24} /></div>
               <div className="analogy-text">
-                <strong>Think of it like this:</strong> {currentStep.analogy}
+                <strong>Alex thinks:</strong> {currentStep.analogy}
               </div>
             </div>
           )}
@@ -705,7 +1083,15 @@ const MLLearningJourneyPage = () => {
 
         {currentStep.id === 'decision-trees' && (
           <div className="decision-tree-explanation">
-            <h3><Icon name="tree" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> How Decision Trees Work</h3>
+            <h3><Icon name="tree" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Alex Builds His First Decision Tree</h3>
+            <div className="story-moment">
+              <p className="story-context">
+                "I need a simple way to make predictions," Alex thinks. "What if I could build something like a flowchart that asks yes/no questions? That would be perfect for starting my journey!"
+              </p>
+            </div>
+            <p className="section-intro" style={{ fontSize: '1.1rem', color: 'rgba(255, 255, 255, 0.85)', marginBottom: '2rem', lineHeight: '1.6', textAlign: 'center' }}>
+              Alex learns that a decision tree is like a flowchart that helps make decisions by asking questions. To understand this, Alex starts with a simple example: deciding whether to bring an umbrella based on the weather!
+            </p>
             <div className="tree-concepts">
               {currentStep.concepts.map((concept, index) => (
                 <div key={index} className="concept-card" style={{ borderLeftColor: concept.color }}>
@@ -724,9 +1110,9 @@ const MLLearningJourneyPage = () => {
             </div>
             
             <div className="supermarket-example">
-              <h4><Icon name="hospital" size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Real-World Example: Classroom Decision Tree</h4>
+              <h4><Icon name="cloud" size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Real-World Example: Weather Decision Tree</h4>
               <p className="example-intro">
-                Organizing students in a classroom by asking simple questions about height and activities.
+                Every morning, you face a simple decision: should you bring an umbrella? This decision tree shows how asking just a few yes/no questions about the weather helps you make the right choice.
               </p>
               <div className="decision-tree-container">
                 <div id="decision-tree-svg" className="decision-tree-d3"></div>
@@ -738,19 +1124,19 @@ const MLLearningJourneyPage = () => {
                   <div className="explanation-step">
                     <div className="step-number">1</div>
                     <div className="step-content">
-                      <strong>First Question:</strong> "Are you taller than 5 feet?" — this splits the classroom into tall and short students.
+                      <strong>First Question:</strong> "Is it raining?" — this splits the decision into two paths: rainy or not rainy.
                     </div>
                   </div>
                   <div className="explanation-step">
                     <div className="step-number">2</div>
                     <div className="step-content">
-                      <strong>If Tall:</strong> Ask "Do you play basketball?" to further organize the tall students into athletes and non-athletes.
+                      <strong>If Not Raining:</strong> Go out! No need to worry about an umbrella.
                     </div>
                   </div>
                   <div className="explanation-step">
                     <div className="step-number">3</div>
                     <div className="step-content">
-                      <strong>Final Groups:</strong> We end up with three organized groups: tall athletes, tall non-athletes, and short students. This helps us understand and organize the classroom better!
+                      <strong>If Raining:</strong> Ask "Do we have umbrella?" — If yes, go out with it. If no, don't go. This decision tree helps us make a smart choice every day!
                     </div>
                   </div>
                 </div>
@@ -762,9 +1148,14 @@ const MLLearningJourneyPage = () => {
         {currentStep.id === 'ensemble-learning' && (
           <div className="ensemble-explanation">
             <div className="ensemble-intro">
-              <h3><Icon name="team" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Ensemble Learning: When Many Minds Work Together</h3>
+              <h3><Icon name="team" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Alex's Breakthrough: The Power of Teams</h3>
+              <div className="story-moment">
+                <p className="story-context">
+                  "My single tree makes mistakes," Alex realizes. "But what if I could combine multiple trees? Like asking several teachers for their opinion instead of just one—the consensus would be much more reliable!"
+                </p>
+              </div>
               <p className="ensemble-intro-text">
-                Ensemble learning combines multiple decision trees (or other models) to create a more accurate and reliable prediction system. 
+                Alex discovers that ensemble learning combines multiple decision trees to create a more accurate and reliable prediction system. 
                 Instead of relying on a single tree that might overfit or miss important patterns, an ensemble uses the "wisdom of the crowd" principle.
               </p>
             </div>
@@ -988,7 +1379,12 @@ const MLLearningJourneyPage = () => {
 
         {currentStep.id === 'boosting-algorithms' && (
           <div className="boosting-explanation">
-            <h3><Icon name="rocket" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Boosting Algorithms: Learning from Mistakes</h3>
+            <h3><Icon name="rocket" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Alex's Discovery: Boosting Algorithms</h3>
+            <div className="story-moment">
+              <p className="story-context">
+                "I noticed my ensemble works well," Alex thinks, "but what if I could make each new model focus on fixing the mistakes of the previous ones? That would be like learning from my errors—getting better with each iteration!"
+              </p>
+            </div>
             
             {/* Tab Navigation */}
             <div className="boosting-tabs">
@@ -1019,13 +1415,6 @@ const MLLearningJourneyPage = () => {
               >
                 <Icon name="bolt" size={16} style={{ marginRight: '6px' }} />
                 XGBoost
-              </button>
-              <button 
-                className={`tab-btn ${activeBoostingTab === 'comparison' ? 'active' : ''}`}
-                onClick={() => setActiveBoostingTab('comparison')}
-              >
-                <Icon name="scale" size={16} style={{ marginRight: '6px' }} />
-                Comparison
               </button>
             </div>
 
@@ -1097,7 +1486,7 @@ const MLLearningJourneyPage = () => {
                     {/* Core Concept */}
                     <div className="core-concept-box">
                       <h5><Icon name="target" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> What is AdaBoost?</h5>
-                      <p><strong>AdaBoost (Adaptive Boosting)</strong> combines multiple <strong>weak learners</strong> (simple decision stumps) into one powerful model. Each stump is a tiny tree with just <strong>one decision</strong> (e.g., "Score > 70?" → Pass or Fail).</p>
+                      <p><strong>AdaBoost (Adaptive Boosting)</strong> combines multiple <strong>weak learners</strong> (simple decision trees) into one powerful model. Each tree is a simple decision tree with just <strong>one decision</strong> (e.g., "Score > 70?" → Pass or Fail).</p>
                       <p>The "Adaptive" part means it <strong>adapts its focus</strong>: trees added later pay more attention to students that earlier trees got wrong.</p>
                     </div>
 
@@ -1147,14 +1536,14 @@ const MLLearningJourneyPage = () => {
                             <div className="data-point equal">Student 5 (Score: 72, Weight: 0.17)</div>
                             <div className="data-point equal">Student 6 (Score: 48, Weight: 0.17)</div>
                           </div>
-                          <p><strong>Every student starts equal:</strong> All 6 students have weight = 1/6. The first decision stump trains on this balanced dataset. At this point, we haven't made any predictions yet.</p>
+                          <p><strong>Every student starts equal:</strong> All 6 students have weight = 1/6. The first decision tree trains on this balanced dataset. At this point, we haven't made any predictions yet.</p>
                         </div>
                       )}
 
                       {/* Step 2 */}
                       {adaboostStep === 1 && (
                         <div className="visual-step">
-                          <h6>Step 2: First Stump Makes Predictions</h6>
+                          <h6>Step 2: First Tree Makes Predictions</h6>
                           <div className="stump-visualization">
                             <div className="stump-node">
                               <div className="stump-question">Score > 70?</div>
@@ -1165,7 +1554,7 @@ const MLLearningJourneyPage = () => {
                             </div>
                           </div>
                           <div className="prediction-results">
-                            <h6>First Stump Predictions:</h6>
+                            <h6>First Tree Predictions:</h6>
                             <div className="prediction-grid">
                               <div className="prediction-item">
                                 <span className="patient-info">Student 1 (Score: 45)</span>
@@ -1207,7 +1596,7 @@ const MLLearningJourneyPage = () => {
                       {adaboostStep === 2 && (
                         <div className="visual-step">
                           <h6>Step 3: Next Iteration - Mistakes Appear!</h6>
-                          <p><strong>Context:</strong> We add more challenging students that don't fit the simple "Score > 70" rule. The first stump now makes mistakes.</p>
+                          <p><strong>Context:</strong> We add more challenging students that don't fit the simple "Score > 70" rule. The first tree now makes mistakes.</p>
                           <div className="stump-visualization">
                             <div className="stump-node">
                               <div className="stump-question">Score > 70? (Same rule as before)</div>
@@ -1218,7 +1607,7 @@ const MLLearningJourneyPage = () => {
                             </div>
                           </div>
                           <div className="prediction-results">
-                            <h6>Same Stump with More Complex Students:</h6>
+                            <h6>Same Tree with More Complex Students:</h6>
                             <div className="prediction-grid">
                               <div className="prediction-item">
                                 <span className="patient-info">Student 1 (Score: 45, Homework: 90)</span>
@@ -1234,7 +1623,7 @@ const MLLearningJourneyPage = () => {
                                 <span className="patient-info">Student 3 (Score: 58, Homework: 100)</span>
                                 <span className="prediction-result wrong highlighted"><Icon name="cross" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Predicted: Fail</span>
                                 <span className="actual-label actual-high">Actual: Pass</span>
-                                <span className="mistake-explanation">Stump 1 only saw Score (58) and said Fail, but actual result is Pass because Homework (100) compensates!</span>
+                                <span className="mistake-explanation">Tree 1 only saw Score (58) and said Fail, but actual result is Pass because Homework (100) compensates!</span>
                               </div>
                               <div className="prediction-item">
                                 <span className="patient-info">Student 4 (Score: 68, Homework: 75)</span>
@@ -1245,7 +1634,7 @@ const MLLearningJourneyPage = () => {
                                 <span className="patient-info">Student 5 (Score: 70, Homework: 60)</span>
                                 <span className="prediction-result wrong highlighted"><Icon name="cross" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Predicted: Pass</span>
                                 <span className="actual-label actual-low">Actual: Fail</span>
-                                <span className="mistake-explanation">Stump 1 only saw Score (70) and said Pass, but actual result is Fail because low Homework (60) requires higher test scores!</span>
+                                <span className="mistake-explanation">Tree 1 only saw Score (70) and said Pass, but actual result is Fail because low Homework (60) requires higher test scores!</span>
                               </div>
                               <div className="prediction-item">
                                 <span className="patient-info">Student 6 (Score: 48, Homework: 70)</span>
@@ -1253,7 +1642,7 @@ const MLLearningJourneyPage = () => {
                                 <span className="actual-label">Actual: Fail</span>
                               </div>
                             </div>
-                            <p className="iteration-summary"><strong>Key insight:</strong> The first stump (using only "Score > 70?") got <strong>2 students wrong</strong> (Students 3 and 5). These mistakes show that the first stump is too simple - it doesn't see homework grades! This is exactly what AdaBoost learns: we need more information to fix these mistakes.</p>
+                            <p className="iteration-summary"><strong>Key insight:</strong> The first tree (using only "Score > 70?") got <strong>2 students wrong</strong> (Students 3 and 5). These mistakes show that the first tree is too simple - it doesn't see homework grades! This is exactly what AdaBoost learns: we need more information to fix these mistakes.</p>
                           </div>
                         </div>
                       )}
@@ -1263,7 +1652,7 @@ const MLLearningJourneyPage = () => {
                         <div className="visual-step">
                           <h6>Step 4: Increase Weights for Mistakes</h6>
                           <div className="weight-update-explanation">
-                            <p><strong>AdaBoost's adaptive mechanism:</strong> Students that were misclassified get their weights increased. This forces the next stump to pay more attention to them!</p>
+                            <p><strong>AdaBoost's adaptive mechanism:</strong> Students that were misclassified get their weights increased. This forces the next tree to pay more attention to them!</p>
                           </div>
                           <div className="weighted-samples">
                             <div className="sample-row">
@@ -1299,14 +1688,14 @@ const MLLearningJourneyPage = () => {
                               </div>
                             </div>
                           </div>
-                          <p><strong>Why this works:</strong> When the next stump trains, Students 3 and 5 "count more" because they have higher weights. The algorithm is forced to focus on correcting these mistakes!</p>
+                          <p><strong>Why this works:</strong> When the next tree trains, Students 3 and 5 "count more" because they have higher weights. The algorithm is forced to focus on correcting these mistakes!</p>
                         </div>
                       )}
 
                       {/* Step 5 */}
                       {adaboostStep === 4 && (
                         <div className="visual-step">
-                          <h6>Step 5: Second Stump Corrects the Mistakes</h6>
+                          <h6>Step 5: Second Tree Corrects the Mistakes</h6>
                           <div className="stump-visualization">
                             <div className="stump-node">
                               <div className="stump-question">Homework > 80?</div>
@@ -1317,7 +1706,7 @@ const MLLearningJourneyPage = () => {
                             </div>
                           </div>
                           <div className="prediction-results">
-                            <h6>Second Stump Predictions (Focusing on High-Weight Students):</h6>
+                            <h6>Second Tree Predictions (Focusing on High-Weight Students):</h6>
                             <div className="prediction-grid">
                               <div className="prediction-item">
                                 <span className="patient-info">Student 1 (Homework: 60)</span>
@@ -1352,7 +1741,7 @@ const MLLearningJourneyPage = () => {
                                 <span className="actual-label">Actual: Fail</span>
                               </div>
                             </div>
-                            <p className="iteration-summary"><strong>Success!</strong> The second stump corrected the mistakes from the first stump! Student 3 (high homework) is now correctly identified as Pass, and Student 5 (low homework) is correctly identified as Fail. The weighted training forced this stump to focus on what the first stump got wrong.</p>
+                            <p className="iteration-summary"><strong>Success!</strong> The second tree corrected the mistakes from the first tree! Student 3 (high homework) is now correctly identified as Pass, and Student 5 (low homework) is correctly identified as Fail. The weighted training forced this tree to focus on what the first tree got wrong.</p>
                           </div>
                         </div>
                       )}
@@ -1360,23 +1749,23 @@ const MLLearningJourneyPage = () => {
                       {/* Step 6 */}
                       {adaboostStep === 5 && (
                         <div className="visual-step">
-                          <h6>Step 6: Combine All Stumps with Weighted Voting</h6>
+                          <h6>Step 6: Combine All Trees with Weighted Voting</h6>
                           <div className="ensemble-visual">
                             <div className="ensemble-stumps">
                               <div className="stump-card">
-                                <div className="stump-title">Stump 1</div>
+                                <div className="stump-title">Tree 1</div>
                                 <div className="stump-rule">"Score > 70?"</div>
                                 <div className="stump-weight">Weight: 0.85</div>
                                 <div className="stump-accuracy">Accuracy: 67%</div>
                               </div>
                               <div className="stump-card">
-                                <div className="stump-title">Stump 2</div>
+                                <div className="stump-title">Tree 2</div>
                                 <div className="stump-rule">"Homework > 80?"</div>
                                 <div className="stump-weight">Weight: 0.60</div>
                                 <div className="stump-accuracy">Accuracy: 83%</div>
                               </div>
                               <div className="stump-card">
-                                <div className="stump-title">Stump 3</div>
+                                <div className="stump-title">Tree 3</div>
                                 <div className="stump-rule">"Attendance > 90%?"</div>
                                 <div className="stump-weight">Weight: 0.70</div>
                                 <div className="stump-accuracy">Accuracy: 92%</div>
@@ -1385,13 +1774,13 @@ const MLLearningJourneyPage = () => {
                             <div className="ensemble-plus">+</div>
                             <div className="final-vote">
                               <div className="vote-title">Final Prediction</div>
-                              <div className="vote-explanation">Each stump votes, weighted by its accuracy. More accurate stumps have more influence!</div>
+                              <div className="vote-explanation">Each tree votes, weighted by its accuracy. More accurate trees have more influence!</div>
                               <div className="vote-formula">
-                                Final = (0.85 × Stump1) + (0.60 × Stump2) + (0.70 × Stump3)
+                                Final = (0.85 × Tree1) + (0.60 × Tree2) + (0.70 × Tree3)
                               </div>
                             </div>
                           </div>
-                          <p><strong>Final prediction:</strong> Each stump makes a prediction, but their votes are weighted by accuracy. More accurate stumps have more say. The final prediction is the weighted majority vote - making the ensemble more reliable than any single stump!</p>
+                          <p><strong>Final prediction:</strong> Each tree makes a prediction, but their votes are weighted by accuracy. More accurate trees have more say. The final prediction is the weighted majority vote - making the ensemble more reliable than any single tree!</p>
                         </div>
                       )}
                     </div>
@@ -1403,13 +1792,13 @@ const MLLearningJourneyPage = () => {
                           <h5><Icon name="settings" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Key Concepts</h5>
                           <div className="concepts-grid">
                             <div className="concept-item">
-                              <strong>Decision Stumps:</strong> Very simple trees with just one split (one question). Much weaker than full trees, but AdaBoost combines many to make them strong.
+                              <strong>Simple Decision Trees:</strong> Very simple trees with just one split (one question). Much weaker than full trees, but AdaBoost combines many to make them strong.
                             </div>
                             <div className="concept-item">
                               <strong>Adaptive Weights:</strong> Mistakes from one round become the focus of the next round. The algorithm adapts to fix errors iteratively.
                             </div>
                             <div className="concept-item">
-                              <strong>Weighted Voting:</strong> Not all stumps are equal. More accurate stumps get higher voting weights in the final prediction.
+                              <strong>Weighted Voting:</strong> Not all trees are equal. More accurate trees get higher voting weights in the final prediction.
                             </div>
                             <div className="concept-item">
                               <strong>Sequential Learning:</strong> Trees are built one after another, each learning from the previous tree's mistakes. This is different from Random Forest where trees are independent.
@@ -1424,19 +1813,19 @@ const MLLearningJourneyPage = () => {
                             <p><strong>Scenario:</strong> We want to predict if a student with test score of 70, homework grade of 90, and attendance of 85% will pass or fail.</p>
                             <div className="example-stumps">
                               <div className="example-stump">
-                                <strong>Stump 1:</strong> "Score > 70?" → Yes → Votes <strong>Pass</strong> (weight: 0.85)
+                                <strong>Tree 1:</strong> "Score > 70?" → Yes → Votes <strong>Pass</strong> (weight: 0.85)
                               </div>
                               <div className="example-stump">
-                                <strong>Stump 2:</strong> "Homework > 80?" → Yes → Votes <strong>Pass</strong> (weight: 0.90)
+                                <strong>Tree 2:</strong> "Homework > 80?" → Yes → Votes <strong>Pass</strong> (weight: 0.90)
                               </div>
                               <div className="example-stump">
-                                <strong>Stump 3:</strong> "Attendance > 90%?" → No → Votes <strong>Fail</strong> (weight: 0.60)
+                                <strong>Tree 3:</strong> "Attendance > 90%?" → No → Votes <strong>Fail</strong> (weight: 0.60)
                               </div>
                             </div>
                             <div className="example-result">
                               <strong>Weighted Vote:</strong> (0.85 × Pass) + (0.90 × Pass) + (0.60 × Fail) = <strong>Pass</strong> wins!
                             </div>
-                            <p><strong>Why it works:</strong> Even though Stump 3 says Fail, the first two stumps (which are more accurate and weighted higher) both say Pass. The ensemble makes a more reliable prediction than any single stump alone.</p>
+                            <p><strong>Why it works:</strong> Even though Tree 3 says Fail, the first two trees (which are more accurate and weighted higher) both say Pass. The ensemble makes a more reliable prediction than any single tree alone.</p>
                           </div>
                         </div>
                       </>
@@ -1571,82 +1960,19 @@ const MLLearningJourneyPage = () => {
                 </div>
               )}
 
-              {/* Comparison Tab */}
-              {activeBoostingTab === 'comparison' && (
-                <div className="tab-panel">
-                  <div className="algorithm-comparison">
-                    <h4><Icon name="scale" size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Boosting Algorithm Comparison</h4>
-                    <div className="comparison-table">
-                      <div className="comparison-header">
-                        <div className="metric">Algorithm</div>
-                        <div className="metric">Speed</div>
-                        <div className="metric">Accuracy</div>
-                        <div className="metric">Interpretability</div>
-                        <div className="metric">Overfitting Risk</div>
-                      </div>
-                      
-                      <div className="comparison-row adaboost">
-                        <div className="algorithm-name">AdaBoost</div>
-                        <div className="metric-value">⭐⭐⭐</div>
-                        <div className="metric-value">⭐⭐⭐</div>
-                        <div className="metric-value">⭐⭐⭐⭐</div>
-                        <div className="metric-value">⭐⭐</div>
-                      </div>
-                      
-                      <div className="comparison-row gradient">
-                        <div className="algorithm-name">Gradient Boosting</div>
-                        <div className="metric-value">⭐⭐</div>
-                        <div className="metric-value">⭐⭐⭐⭐</div>
-                        <div className="metric-value">⭐⭐⭐</div>
-                        <div className="metric-value">⭐⭐</div>
-                      </div>
-                      
-                      <div className="comparison-row xgboost">
-                        <div className="algorithm-name">XGBoost</div>
-                        <div className="metric-value">⭐⭐⭐⭐⭐</div>
-                        <div className="metric-value">⭐⭐⭐⭐⭐</div>
-                        <div className="metric-value">⭐⭐</div>
-                        <div className="metric-value">⭐⭐⭐⭐</div>
-                      </div>
-                    </div>
-                    
-                    <div className="comparison-insights">
-                      <h5><Icon name="target" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Key Insights:</h5>
-                      <div className="insights-grid">
-                        <div className="insight-card">
-                          <strong><Icon name="bolt" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Speed:</strong> XGBoost is fastest, AdaBoost is moderate, Gradient Boosting is slowest
-                        </div>
-                        <div className="insight-card">
-                          <strong><Icon name="target" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Accuracy:</strong> XGBoost usually wins, but Gradient Boosting is very close
-                        </div>
-                        <div className="insight-card">
-                          <strong><Icon name="target" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Interpretability:</strong> AdaBoost is easiest to understand, XGBoost is most complex
-                        </div>
-                        <div className="insight-card">
-                          <strong><Icon name="shield" size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Overfitting:</strong> XGBoost has best protection, others need careful tuning
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="when-to-use">
-                      <h5><Icon name="target" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> When to use which?</h5>
-                      <ul>
-                        <li><strong>AdaBoost:</strong> Smaller datasets; want simple, more explainable behavior.</li>
-                        <li><strong>Gradient Boosting:</strong> Aim for top accuracy with careful tuning on medium data.</li>
-                        <li><strong>XGBoost:</strong> Larger datasets; need speed and built‑in safeguards against overfitting.</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
 
         {currentStep.id === 'experiment' && (
           <div className="experiment-section">
-            <h3><Icon name="experiment" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Performance Comparison on Stroke Dataset</h3>
-            <p>We train multiple algorithms on the same stroke dataset and compare accuracy, precision, recall, and F1‑score.</p>
+            <div className="story-moment">
+              <p className="story-context">
+                "I've learned so much!" Alex realizes. "Decision Trees, Ensembles, Boosting... but which one works best for my problem? It's time to run experiments and find out!"
+              </p>
+            </div>
+            <h3><Icon name="experiment" size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Alex's Experiment: Performance Comparison</h3>
+            <p>Alex trains multiple algorithms on the same stroke dataset to compare accuracy, precision, recall, and F1‑score. "This will show me which technique works best!" Alex thinks.</p>
             
             <div className="experiment-controls">
               <button 
