@@ -1835,52 +1835,6 @@ const MLLearningJourneyPage = () => {
                         </div>
                       )}
                     </div>
-
-                    {/* Key Concepts - Only show after viewing all steps */}
-                    {adaboostStep === 5 && (
-                      <>
-                        <div className="key-concepts-box" style={{ marginTop: '2rem' }}>
-                          <h5><Icon name="settings" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Key Concepts</h5>
-                          <div className="concepts-grid">
-                            <div className="concept-item">
-                              <strong>Simple Decision Trees:</strong> Very simple trees with just one split (one question). Much weaker than full trees, but AdaBoost combines many to make them strong.
-                            </div>
-                            <div className="concept-item">
-                              <strong>Adaptive Weights:</strong> Mistakes from one round become the focus of the next round. The algorithm adapts to fix errors iteratively.
-                            </div>
-                            <div className="concept-item">
-                              <strong>Weighted Voting:</strong> Not all trees are equal. More accurate trees get higher voting weights in the final prediction.
-                            </div>
-                            <div className="concept-item">
-                              <strong>Sequential Learning:</strong> Trees are built one after another, each learning from the previous tree's mistakes. This is different from Random Forest where trees are independent.
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Real-World Example */}
-                        <div className="real-world-example" style={{ marginTop: '2rem' }}>
-                          <h5><Icon name="hospital" size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Real-World Example: Student Pass/Fail Prediction</h5>
-                          <div className="example-scenario">
-                            <p><strong>Scenario:</strong> We want to predict if a student with test score of 70, homework grade of 90, and attendance of 85% will pass or fail.</p>
-                            <div className="example-stumps">
-                              <div className="example-stump">
-                                <strong>Tree 1:</strong> "Score > 70?" → Yes → Votes <strong>Pass</strong> (weight: 0.85)
-                              </div>
-                              <div className="example-stump">
-                                <strong>Tree 2:</strong> "Homework > 80?" → Yes → Votes <strong>Pass</strong> (weight: 0.90)
-                              </div>
-                              <div className="example-stump">
-                                <strong>Tree 3:</strong> "Attendance > 90%?" → No → Votes <strong>Fail</strong> (weight: 0.60)
-                              </div>
-                            </div>
-                            <div className="example-result">
-                              <strong>Weighted Vote:</strong> (0.85 × Pass) + (0.90 × Pass) + (0.60 × Fail) = <strong>Pass</strong> wins!
-                            </div>
-                            <p><strong>Why it works:</strong> Even though Tree 3 says Fail, the first two trees (which are more accurate and weighted higher) both say Pass. The ensemble makes a more reliable prediction than any single tree alone.</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
                   </div>
                 </div>
               )}
