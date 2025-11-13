@@ -514,6 +514,41 @@ body::before {
   overflow: hidden;
 }
 
+.dataset-explanation {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  font-family: 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.95);
+  transition: all 0.3s ease;
+}
+
+.dataset-explanation:hover {
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.15);
+}
+
+.dataset-explanation p {
+  margin-bottom: 1rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+.dataset-explanation p:last-child {
+  margin-bottom: 0;
+}
+
+.dataset-explanation strong {
+  color: #8b9aff;
+  font-weight: 600;
+  font-size: 1.08rem;
+  letter-spacing: 0.02em;
+}
+
 .dataset-table {
   width: 100%;
   border-collapse: collapse;
@@ -1017,6 +1052,8 @@ body::before {
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
   align-items: center;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .story-text {
@@ -2496,12 +2533,15 @@ body::before {
 }
 
 .ml-learning-journey {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1f1f1f 100%);
   padding: 0;
   color: #ffffff;
   position: relative;
-  overflow-x: hidden;
 }
 
 .ml-learning-journey.visible {
@@ -3255,6 +3295,14 @@ body::before {
   background: rgba(102, 126, 234, 0.6);
 }
 
+.decision-tree-explanation {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding: 0 1rem;
+}
+
 .decision-tree-explanation h3 {
   font-size: 1.8rem;
   color: #ffffff;
@@ -3403,26 +3451,39 @@ body::before {
 .decision-tree-container {
   display: flex;
   justify-content: center;
-  margin: 3rem 0;
-  padding: 2.5rem;
+  align-items: center;
+  margin: 2rem 0;
+  padding: 2rem;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);
   border-radius: 24px;
   border: 1px solid rgba(102, 126, 234, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  width: 100%;
+  max-width: 100%;
+  min-height: 700px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .decision-tree-d3 {
   width: 100%;
+  height: 100%;
+  max-width: 100%;
   display: flex;
   justify-content: center;
+  align-items: center;
+  min-height: 700px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .decision-tree-d3 svg {
   background: transparent;
   width: 100%;
   height: auto;
-  max-width: 1800px;
-  min-height: 1100px;
+  max-width: 100%;
+  min-height: 700px;
+  overflow: visible;
   filter: drop-shadow(0 4px 16px rgba(102, 126, 234, 0.1));
 }
 
@@ -4819,13 +4880,18 @@ body::before {
 
 .step-content-wrapper {
   margin-top: 1.5rem;
-  min-height: 300px;
+  min-height: 400px;
   width: 100%;
+  position: relative;
+  transition: min-height 0.3s ease;
 }
 
 .step-content-wrapper .visual-step {
   max-width: 100%;
   overflow-x: auto;
+  width: 100%;
+  min-height: 300px;
+  display: block;
 }
 
 /* Algorithm Deep Dive */

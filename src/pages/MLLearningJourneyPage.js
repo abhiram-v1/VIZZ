@@ -20,6 +20,8 @@ const MLLearningJourneyPage = () => {
   const contentRef = useRef(null);
   const searchInputRef = useRef(null);
   const adaboostPlayIntervalRef = useRef(null);
+  const stepContentRef = useRef(null);
+  const visualStepRefs = useRef({});
 
   // Alex's Learning Journey - Story-Driven Sections
   const learningSections = [
@@ -320,13 +322,23 @@ const MLLearningJourneyPage = () => {
       ]
     };
 
-    const width = 2000;
-    const height = 1200;
+    // Get container dimensions for responsive sizing
+    const container = document.getElementById("decision-tree-svg");
+    const containerElement = container?.parentElement;
+    const containerWidth = containerElement ? Math.min(containerElement.offsetWidth - 100, 2000) : 1800;
+    const containerHeight = containerElement ? Math.min(containerElement.offsetHeight - 100, 1200) : 1000;
+    
+    // Use reasonable defaults that fit within most screens
+    const width = Math.max(1600, Math.min(containerWidth, 2000));
+    const height = Math.max(900, Math.min(containerHeight, 1200));
     
     const svgElement = d3.select("#decision-tree-svg")
       .append("svg")
       .attr("viewBox", [0, 0, width, height])
-      .attr("preserveAspectRatio", "xMidYMid meet");
+      .attr("preserveAspectRatio", "xMidYMid meet")
+      .style("width", "100%")
+      .style("height", "auto")
+      .style("max-width", "100%");
 
     // Add gradient definitions with enhanced colors
     const defs = svgElement.append("defs");
@@ -385,14 +397,18 @@ const MLLearningJourneyPage = () => {
       .attr("stop-color", "#8b5cf6")
       .attr("stop-opacity", "0.9");
 
+    // Add padding to ensure content doesn't touch edges
+    const paddingX = width * 0.08;
+    const paddingY = height * 0.08;
+    
     const svg = svgElement
       .append("g")
-      .attr("transform", "translate(250,100)");
+      .attr("transform", `translate(${paddingX}, ${paddingY})`);
 
     // Vertical tree layout - swap width and height for vertical orientation
-    // Significantly increased spacing between branches and nodes
+    // Use available space with proper margins
     const treeLayout = d3.tree()
-      .size([width - 500, height - 200])
+      .size([width - (paddingX * 2), height - (paddingY * 2)])
       .separation((a, b) => {
         // Add much more separation between nodes
         // Siblings get significantly more space, parents and children get more vertical space
@@ -413,16 +429,16 @@ const MLLearningJourneyPage = () => {
       .attr("d", d3.linkVertical()
         .x(d => d.x)
         .y(d => d.y))
-      .attr("stroke-width", 4)
+      .attr("stroke-width", 6)
       .attr("stroke", "url(#linkGradient)")
-      .attr("opacity", 0.8)
+      .attr("opacity", 0.85)
       .attr("fill", "none")
       .style("filter", "drop-shadow(0 2px 4px rgba(102, 126, 234, 0.4))")
       .on("mouseenter", function() {
         d3.select(this)
           .transition()
           .duration(200)
-          .attr("stroke-width", 5)
+          .attr("stroke-width", 7)
           .attr("opacity", 1)
           .style("filter", "drop-shadow(0 3px 6px rgba(102, 126, 234, 0.6))");
       })
@@ -430,20 +446,20 @@ const MLLearningJourneyPage = () => {
         d3.select(this)
           .transition()
           .duration(200)
-          .attr("stroke-width", 4)
-          .attr("opacity", 0.8)
+          .attr("stroke-width", 6)
+          .attr("opacity", 0.85)
           .style("filter", "drop-shadow(0 2px 4px rgba(102, 126, 234, 0.4))");
       });
 
-    // Calculate node dimensions - smaller boxes for better fit
+    // Calculate node dimensions - larger boxes for better visibility
     const getNodeWidth = (text) => {
-      const baseWidth = 180;
-      const minWidth = 200;
-      const charWidth = 8;
-      return Math.max(minWidth, Math.min(baseWidth + text.length * charWidth, 300));
+      const baseWidth = 280;
+      const minWidth = 300;
+      const charWidth = 12;
+      return Math.max(minWidth, Math.min(baseWidth + text.length * charWidth, 450));
     };
 
-    const getNodeHeight = (hasIcon) => hasIcon ? 80 : 60;
+    const getNodeHeight = (hasIcon) => hasIcon ? 120 : 90;
 
     // Nodes - for vertical tree, swap x and y coordinates
     const node = svg.selectAll(".node")
@@ -494,25 +510,25 @@ const MLLearningJourneyPage = () => {
             .attr("ry", 16);
         });
 
-      // Add icon if available
+      // Add icon if available - larger icons for better visibility
       if (d.data.icon) {
         nodeGroup.append("text")
           .attr("text-anchor", "middle")
-          .attr("dy", -10)
-          .attr("font-size", "32px")
-          .style("font-size", "32px")
+          .attr("dy", -15)
+          .attr("font-size", "48px")
+          .style("font-size", "48px")
           .text(d.data.icon);
       }
 
-      // Add text - reduced font size for better fit
+      // Add text - larger font size for better readability
       nodeGroup.append("text")
         .attr("text-anchor", "middle")
-        .attr("dy", d.data.icon ? 20 : 5)
+        .attr("dy", d.data.icon ? 30 : 8)
         .attr("fill", "#ffffff")
-        .attr("font-size", "16px")
+        .attr("font-size", "20px")
         .attr("font-weight", "600")
         .attr("font-family", "Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif")
-        .style("font-size", "16px")
+        .style("font-size", "20px")
         .style("font-weight", "600")
         .style("pointer-events", "none")
         .style("text-shadow", "0 2px 4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.7)")
@@ -545,23 +561,23 @@ const MLLearningJourneyPage = () => {
         
         if (!labelText) return;
         
-        // Create background circle/ellipse for label with reduced size
+        // Create background circle/ellipse for label - larger size for better visibility
         labelGroup.append("ellipse")
-          .attr("cx", midX + 60)
+          .attr("cx", midX + 80)
           .attr("cy", midY)
-          .attr("rx", 30)
-          .attr("ry", 20)
+          .attr("rx", 45)
+          .attr("ry", 30)
           .attr("fill", "#667eea")
           .attr("stroke", "rgba(255, 255, 255, 0.6)")
-          .attr("stroke-width", 2)
+          .attr("stroke-width", 3)
           .attr("opacity", 0.95)
           .style("filter", "drop-shadow(0 3px 8px rgba(102, 126, 234, 0.6))")
           .on("mouseenter", function() {
             d3.select(this)
               .transition()
               .duration(200)
-              .attr("rx", 32)
-              .attr("ry", 22)
+              .attr("rx", 48)
+              .attr("ry", 32)
               .attr("opacity", 1)
               .style("filter", "drop-shadow(0 4px 10px rgba(102, 126, 234, 0.8))");
           })
@@ -569,22 +585,23 @@ const MLLearningJourneyPage = () => {
             d3.select(this)
               .transition()
               .duration(200)
-              .attr("rx", 30)
-              .attr("ry", 20)
+              .attr("rx", 45)
+              .attr("ry", 30)
               .attr("opacity", 0.95)
               .style("filter", "drop-shadow(0 3px 8px rgba(102, 126, 234, 0.6))");
           });
         
-        // Add label text - reduced font size for better fit
+        // Add label text - larger font for better readability
         labelGroup.append("text")
-          .attr("x", midX + 60)
+          .attr("x", midX + 80)
           .attr("y", midY)
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
           .attr("fill", "#ffffff")
-          .attr("font-size", "18px")
+          .attr("font-size", "24px")
           .attr("font-weight", "700")
           .attr("font-family", "Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif")
+          .style("font-size", "24px")
           .style("text-shadow", "0 2px 4px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8)")
           .style("letter-spacing", "0.3px")
           .text(labelText);
@@ -786,6 +803,65 @@ const MLLearningJourneyPage = () => {
       }
     };
   }, [isAdaboostPlaying, activeBoostingTab]);
+
+  // Scroll to step content when step changes - with dynamic height calculation
+  useEffect(() => {
+    if (activeBoostingTab === 'adaboost') {
+      // Delay to ensure DOM has updated with new content and all measurements are accurate
+      setTimeout(() => {
+        // Find the current visual-step element and navigation
+        const currentVisualStep = document.querySelector('.step-content-wrapper .visual-step');
+        const stepNavigation = document.querySelector('.step-navigation');
+        
+        if (currentVisualStep && stepNavigation) {
+          // Get positions and dimensions
+          const stepNavRect = stepNavigation.getBoundingClientRect();
+          const visualStepRect = currentVisualStep.getBoundingClientRect();
+          const visualStepHeight = currentVisualStep.offsetHeight || visualStepRect.height;
+          const viewportHeight = window.innerHeight;
+          
+          // Calculate available space (viewport minus nav area and padding)
+          const navHeight = stepNavRect.height;
+          const topPadding = 100; // Space for nav and header
+          const bottomPadding = 50; // Space at bottom
+          const availableHeight = viewportHeight - topPadding - bottomPadding;
+          
+          // Determine scroll strategy based on slide height
+          let scrollTarget;
+          
+          if (visualStepHeight <= availableHeight) {
+            // Slide fits in viewport: scroll to show nav and slide together
+            // Position nav near top, slide below it
+            scrollTarget = window.scrollY + stepNavRect.top - 80;
+          } else {
+            // Slide is taller than viewport: scroll to show top of slide
+            // Ensure nav is still visible or just above viewport
+            const navScrollPos = window.scrollY + stepNavRect.top - 80;
+            const slideScrollPos = window.scrollY + visualStepRect.top - 100;
+            
+            // Use the position that shows more content while keeping nav accessible
+            scrollTarget = Math.min(navScrollPos, slideScrollPos);
+          }
+          
+          // Ensure we don't scroll past the top
+          scrollTarget = Math.max(0, scrollTarget);
+          
+          // Scroll smoothly to the calculated position
+          window.scrollTo({
+            top: scrollTarget,
+            behavior: 'smooth'
+          });
+        } else if (stepContentRef.current) {
+          // Fallback: scroll to step content wrapper
+          const elementRect = stepContentRef.current.getBoundingClientRect();
+          window.scrollTo({
+            top: window.scrollY + elementRect.top - 100,
+            behavior: 'smooth'
+          });
+        }
+      }, 250); // Delay to ensure content is fully rendered, measured, and layout is stable
+    }
+  }, [adaboostStep, activeBoostingTab]);
 
   // Reset auto-play when switching tabs
   useEffect(() => {
@@ -1574,7 +1650,7 @@ const MLLearningJourneyPage = () => {
                     </div>
 
                     {/* Step Content */}
-                    <div className="step-content-wrapper">
+                    <div className="step-content-wrapper" ref={stepContentRef}>
                       {/* Step 1 */}
                       {adaboostStep === 0 && (
                         <div className="visual-step">

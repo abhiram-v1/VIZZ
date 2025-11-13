@@ -245,22 +245,67 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         
         # Select two features for visualization
         feature_names = data_store.get('feature_names', [])
+        categorical_features = data_store.get('categorical_features', [])
+        numerical_features = data_store.get('numerical_features', [])
         
-        # Pick the best two features
+        # Ensure we only use numerical features for visualization
+        # Get indices of numerical features
+        numerical_indices = [i for i, name in enumerate(feature_names) if name in numerical_features]
+        
+        # Pick the best two features (prefer numerical features)
         if 'age' in feature_names and 'avg_glucose_level' in feature_names:
             age_idx = feature_names.index('age')
             glucose_idx = feature_names.index('avg_glucose_level')
-            X_2d = X_train.iloc[:, [age_idx, glucose_idx]].values
-            x_label, y_label = 'Age', 'Average Glucose Level'
+            # Verify these are numerical
+            if age_idx in numerical_indices and glucose_idx in numerical_indices:
+                X_2d = X_train.iloc[:, [age_idx, glucose_idx]].values
+                x_label, y_label = 'Age', 'Average Glucose Level'
+            else:
+                # Fall back to first two numerical features
+                if len(numerical_indices) >= 2:
+                    X_2d = X_train.iloc[:, [numerical_indices[0], numerical_indices[1]]].values
+                    x_label, y_label = feature_names[numerical_indices[0]], feature_names[numerical_indices[1]]
+                else:
+                    raise Exception("Not enough numerical features for visualization")
         elif 'age' in feature_names and 'bmi' in feature_names:
             age_idx = feature_names.index('age')
             bmi_idx = feature_names.index('bmi')
-            X_2d = X_train.iloc[:, [age_idx, bmi_idx]].values
-            x_label, y_label = 'Age', 'BMI'
+            # Verify these are numerical
+            if age_idx in numerical_indices and bmi_idx in numerical_indices:
+                X_2d = X_train.iloc[:, [age_idx, bmi_idx]].values
+                x_label, y_label = 'Age', 'BMI'
+            else:
+                # Fall back to first two numerical features
+                if len(numerical_indices) >= 2:
+                    X_2d = X_train.iloc[:, [numerical_indices[0], numerical_indices[1]]].values
+                    x_label, y_label = feature_names[numerical_indices[0]], feature_names[numerical_indices[1]]
+                else:
+                    raise Exception("Not enough numerical features for visualization")
+        elif 'CreditScore' in feature_names and 'Age' in feature_names:
+            # Churn dataset: use CreditScore and Age
+            credit_idx = feature_names.index('CreditScore')
+            age_idx = feature_names.index('Age')
+            if credit_idx in numerical_indices and age_idx in numerical_indices:
+                X_2d = X_train.iloc[:, [credit_idx, age_idx]].values
+                x_label, y_label = 'Credit Score', 'Age'
+            else:
+                # Fall back to first two numerical features
+                if len(numerical_indices) >= 2:
+                    X_2d = X_train.iloc[:, [numerical_indices[0], numerical_indices[1]]].values
+                    x_label, y_label = feature_names[numerical_indices[0]], feature_names[numerical_indices[1]]
+                else:
+                    raise Exception("Not enough numerical features for visualization")
         else:
-            # Use first two features
-            X_2d = X_train.iloc[:, [0, 1]].values
-            x_label, y_label = feature_names[0], feature_names[1]
+            # Use first two NUMERICAL features (not categorical)
+            if len(numerical_indices) >= 2:
+                X_2d = X_train.iloc[:, [numerical_indices[0], numerical_indices[1]]].values
+                x_label, y_label = feature_names[numerical_indices[0]], feature_names[numerical_indices[1]]
+            elif len(numerical_indices) == 1:
+                # Only one numerical feature, use it twice (not ideal but better than error)
+                X_2d = X_train.iloc[:, [numerical_indices[0], numerical_indices[0]]].values
+                x_label, y_label = feature_names[numerical_indices[0]], feature_names[numerical_indices[0]]
+            else:
+                raise Exception("No numerical features available for visualization")
         
         # Get labels
         y_labels = y_train.values
@@ -317,11 +362,17 @@ def generate_boosting_decision_boundary(algorithm="adaboost", n_estimators=1, st
         if len(no_stroke_points_viz) > final_viz_count:
             no_stroke_points_viz = no_stroke_points_viz[np.random.choice(len(no_stroke_points_viz), final_viz_count, replace=False)]
         
+        # Determine label names based on dataset
+        # Check if this is churn dataset by looking at feature names or y_train values
+        is_churn_dataset = 'CreditScore' in feature_names or 'Geography' in feature_names
+        class0_label = 'No Churn' if is_churn_dataset else 'No Stroke'
+        class1_label = 'Churn' if is_churn_dataset else 'Stroke'
+        
         ax.scatter(no_stroke_points_viz[:, 0], no_stroke_points_viz[:, 1], 
-                  c='#f87171', label=f'No Stroke (showing {len(no_stroke_points_viz)} of {len(no_stroke_points)})', 
+                  c='#f87171', label=f'{class0_label} (showing {len(no_stroke_points_viz)} of {len(no_stroke_points)})', 
                   alpha=0.9, s=60, edgecolors='#ffffff', linewidth=1.5)
         ax.scatter(stroke_points_viz[:, 0], stroke_points_viz[:, 1], 
-                  c='#4ade80', label=f'Stroke (showing {len(stroke_points_viz)} of {len(stroke_points)})', 
+                  c='#4ade80', label=f'{class1_label} (showing {len(stroke_points_viz)} of {len(stroke_points)})', 
                   alpha=0.9, s=60, edgecolors='#ffffff', linewidth=1.5)
         
         # Labels and title with bright colors
@@ -921,12 +972,40 @@ def load_dataset_for_training(dataset_name: str, n_samples: int = None):
             X = df.drop(['CustomerID', 'Churn'], axis=1)
             y = df['Churn']
             
-            # All features are numerical for this dataset
+            # Identify categorical and numerical features
             categorical_features = []
-            numerical_features = X.columns.tolist()
+            numerical_features = []
             
-            # No encoding needed - all numerical
+            for col in X.columns:
+                if X[col].dtype == 'object' or X[col].dtype.name == 'category':
+                    categorical_features.append(col)
+                else:
+                    numerical_features.append(col)
+            
+            # Encode categorical variables
             X_encoded = X.copy()
+            for feature in categorical_features:
+                if feature in X_encoded.columns:
+                    le = LabelEncoder()
+                    X_encoded[feature] = le.fit_transform(X_encoded[feature].astype(str))
+            
+            # Ensure all columns are numeric (convert any remaining object types)
+            for col in X_encoded.columns:
+                if X_encoded[col].dtype == 'object':
+                    # Try to convert to numeric, if fails then encode
+                    try:
+                        X_encoded[col] = pd.to_numeric(X_encoded[col], errors='coerce')
+                    except:
+                        le = LabelEncoder()
+                        X_encoded[col] = le.fit_transform(X_encoded[col].astype(str))
+            
+            # Verify all columns are numeric
+            non_numeric_cols = [col for col in X_encoded.columns if X_encoded[col].dtype not in ['int64', 'float64', 'int32', 'float32']]
+            if non_numeric_cols:
+                print(f"Warning: Non-numeric columns after encoding: {non_numeric_cols}")
+                # Force conversion
+                for col in non_numeric_cols:
+                    X_encoded[col] = pd.to_numeric(X_encoded[col], errors='coerce').fillna(0)
             
             # Balance classes
             churn_indices = y[y == 1].index
@@ -1340,6 +1419,109 @@ async def predict_stroke(data: Dict[str, Any]):
             "prediction_label": "Stroke" if prediction == 1 else "No Stroke",
             "probability_no_stroke": float(prediction_proba[0]),
             "probability_stroke": float(prediction_proba[1]),
+            "confidence": float(max(prediction_proba)),
+            "input_data": input_data
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+@app.post("/predict/churn")
+async def predict_churn(data: Dict[str, Any]):
+    """Predict churn for customer data based on dataset features"""
+    try:
+        # Check if a model has been trained
+        if not data_store.get('model_trained', False):
+            raise HTTPException(status_code=400, detail="Model hasn't been trained yet. Please train a model first before making predictions.")
+        
+        if data_store['X_train'] is None:
+            raise HTTPException(status_code=404, detail="No dataset loaded")
+        
+        # Load the original dataset to get proper structure
+        dataset_paths = [
+            'boosting_small_dataset.csv',
+            'data/boosting_small_dataset.csv',
+            '../boosting_small_dataset.csv'
+        ]
+        
+        df = None
+        for path in dataset_paths:
+            try:
+                df = pd.read_csv(path)
+                break
+            except FileNotFoundError:
+                continue
+        
+        if df is None:
+            raise HTTPException(status_code=404, detail="Original churn dataset not found")
+        
+        # Prepare the input data
+        input_data = {
+            'CreditScore': float(data.get('CreditScore', 650.0)),
+            'Geography': data.get('Geography', 'France'),
+            'Gender': data.get('Gender', 'Male'),
+            'Age': float(data.get('Age', 35.0)),
+            'Tenure': float(data.get('Tenure', 5.0)),
+            'Balance': float(data.get('Balance', 1000.0)),
+            'NumOfProducts': float(data.get('NumOfProducts', 2.0)),
+            'HasCrCard': int(data.get('HasCrCard', 1)),
+            'IsActiveMember': int(data.get('IsActiveMember', 1)),
+            'EstimatedSalary': float(data.get('EstimatedSalary', 50000.0))
+        }
+        
+        # Create DataFrame
+        input_df = pd.DataFrame([input_data])
+        
+        # Encode categorical variables if they exist (Geography, Gender)
+        input_encoded = input_df.copy()
+        categorical_features = []
+        if 'Geography' in df.columns:
+            categorical_features.append('Geography')
+        if 'Gender' in df.columns:
+            categorical_features.append('Gender')
+        
+        for feature in categorical_features:
+            if feature in input_encoded.columns:
+                # Get unique values from original dataset for consistent encoding
+                unique_values = sorted(df[feature].astype(str).unique())
+                le = LabelEncoder()
+                le.fit(unique_values)
+                
+                # Handle unseen categories
+                if str(input_data[feature]) in le.classes_:
+                    input_encoded[feature] = le.transform([str(input_data[feature])])
+                else:
+                    # Default to first category if not seen
+                    input_encoded[feature] = le.transform([unique_values[0]])
+        
+        # Use the trained model if available, otherwise retrain
+        if data_store.get('trained_model') is not None:
+            model = data_store['trained_model']
+        else:
+            # Fallback: retrain a quick model
+            from sklearn.ensemble import AdaBoostClassifier
+            from sklearn.tree import DecisionTreeClassifier
+            
+            model = AdaBoostClassifier(
+                estimator=DecisionTreeClassifier(max_depth=1),
+                n_estimators=50,
+                learning_rate=1.0,
+                random_state=42
+            )
+            
+            X_train = data_store['X_train']
+            y_train = data_store['y_train']
+            model.fit(X_train, y_train)
+        
+        # Make prediction
+        prediction = model.predict(input_encoded)[0]
+        prediction_proba = model.predict_proba(input_encoded)[0]
+        
+        return {
+            "prediction": int(prediction),
+            "prediction_label": "Churn" if prediction == 1 else "No Churn",
+            "probability_no_churn": float(prediction_proba[0]),
+            "probability_churn": float(prediction_proba[1]),
             "confidence": float(max(prediction_proba)),
             "input_data": input_data
         }

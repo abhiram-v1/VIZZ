@@ -81,6 +81,36 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
         // Reset n_samples when dataset changes
         setNSamples(null);
         
+        // Reset prediction data and result when dataset changes
+        if (selectedDataset === "stroke") {
+          setPredictionData({
+            gender: 'Male',
+            age: 45,
+            hypertension: 0,
+            heart_disease: 0,
+            ever_married: 'Yes',
+            work_type: 'Private',
+            Residence_type: 'Urban',
+            avg_glucose_level: 95.0,
+            bmi: 25.0,
+            smoking_status: 'never smoked'
+          });
+        } else if (selectedDataset === "churn") {
+          setPredictionData({
+            CreditScore: 650,
+            Geography: 'France',
+            Gender: 'Male',
+            Age: 35,
+            Tenure: 5,
+            Balance: 1000.0,
+            NumOfProducts: 2,
+            HasCrCard: 1,
+            IsActiveMember: 1,
+            EstimatedSalary: 50000.0
+          });
+        }
+        setPredictionResult(null);
+        
         // Also prepare training data structure for decision boundary
         // This will be updated with real data during training
         if (data && data.columns) {
@@ -620,12 +650,32 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
     try {
       setError(null);
       setPredictionResult(null); // Clear previous result
-      const result = await apiService.predictStroke(predictionData);
+      
+      // Check if model has been trained
+      if (!metrics || !metrics.accuracy) {
+        setPredictionResult({
+          error: true,
+          message: "Please train the model first before making predictions."
+        });
+        addLog('Prediction failed: Model not trained yet', 'error');
+        return;
+      }
+      
+      // Call appropriate API based on dataset
+      let result;
+      if (selectedDataset === "stroke") {
+        result = await apiService.predictStroke(predictionData);
+      } else if (selectedDataset === "churn") {
+        result = await apiService.predictChurn(predictionData);
+      } else {
+        throw new Error("Unsupported dataset for prediction");
+      }
+      
       setPredictionResult(result);
       addLog(`Prediction: ${result.prediction_label} (Confidence: ${(result.confidence * 100).toFixed(1)}%)`, 'info');
     } catch (error) {
       // Check if it's the "model not trained" error
-      if (error.message && error.message.includes("hasn't been trained")) {
+      if (error.message && (error.message.includes("hasn't been trained") || error.message.includes("not trained"))) {
         setPredictionResult({
           error: true,
           message: "Please train the model first before making predictions."
@@ -1299,143 +1349,272 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
 
       {/* Prediction Section */}
       <div className="controls-section">
-        <h2 className="section-title">Predict Stroke for New Data</h2>
+        <h2 className="section-title">
+          {selectedDataset === "stroke" ? "Predict Stroke for New Data" : "Predict Churn for New Customer"}
+        </h2>
         <div className="params-form">
-          <div className="param-group">
-            <label className="param-label">Gender</label>
-            <select
-              className="param-input"
-              value={predictionData.gender}
-              onChange={(e) => handlePredictionChange('gender', e.target.value)}
-            >
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
-          
-          <div className="param-group">
-            <label className="param-label">Age</label>
-            <input
-              type="number"
-              className="param-input"
-              value={predictionData.age}
-              onChange={(e) => handlePredictionChange('age', parseFloat(e.target.value) || 0)}
-              min="0"
-              max="120"
-            />
-          </div>
-          
-          <div className="param-group">
-            <label className="param-label">Hypertension</label>
-            <select
-              className="param-input"
-              value={predictionData.hypertension}
-              onChange={(e) => handlePredictionChange('hypertension', parseInt(e.target.value))}
-            >
-              <option value={0}>No</option>
-              <option value={1}>Yes</option>
-            </select>
-          </div>
-          
-          <div className="param-group">
-            <label className="param-label">Heart Disease</label>
-            <select
-              className="param-input"
-              value={predictionData.heart_disease}
-              onChange={(e) => handlePredictionChange('heart_disease', parseInt(e.target.value))}
-            >
-              <option value={0}>No</option>
-              <option value={1}>Yes</option>
-            </select>
-          </div>
-          
-          <div className="param-group">
-            <label className="param-label">Ever Married</label>
-            <select
-              className="param-input"
-              value={predictionData.ever_married}
-              onChange={(e) => handlePredictionChange('ever_married', e.target.value)}
-            >
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-            </select>
-          </div>
-          
-          <div className="param-group">
-            <label className="param-label">Work Type</label>
-            <select
-              className="param-input"
-              value={predictionData.work_type}
-              onChange={(e) => handlePredictionChange('work_type', e.target.value)}
-            >
-              <option value="Private">Private</option>
-              <option value="Self-employed">Self-employed</option>
-              <option value="Govt_job">Government Job</option>
-              <option value="children">Children</option>
-              <option value="Never_worked">Never Worked</option>
-            </select>
-          </div>
-          
-          <div className="param-group">
-            <label className="param-label">Residence Type</label>
-            <select
-              className="param-input"
-              value={predictionData.Residence_type}
-              onChange={(e) => handlePredictionChange('Residence_type', e.target.value)}
-            >
-              <option value="Urban">Urban</option>
-              <option value="Rural">Rural</option>
-            </select>
-          </div>
-          
-          <div className="param-group">
-            <label className="param-label">Average Glucose Level</label>
-            <input
-              type="number"
-              className="param-input"
-              value={predictionData.avg_glucose_level}
-              onChange={(e) => handlePredictionChange('avg_glucose_level', parseFloat(e.target.value) || 0)}
-              min="50"
-              max="300"
-              step="0.1"
-            />
-          </div>
-          
-          <div className="param-group">
-            <label className="param-label">BMI</label>
-            <input
-              type="number"
-              className="param-input"
-              value={predictionData.bmi}
-              onChange={(e) => handlePredictionChange('bmi', parseFloat(e.target.value) || 0)}
-              min="10"
-              max="50"
-              step="0.1"
-            />
-          </div>
-          
-          <div className="param-group">
-            <label className="param-label">Smoking Status</label>
-            <select
-              className="param-input"
-              value={predictionData.smoking_status}
-              onChange={(e) => handlePredictionChange('smoking_status', e.target.value)}
-            >
-              <option value="never smoked">Never Smoked</option>
-              <option value="formerly smoked">Formerly Smoked</option>
-              <option value="smokes">Smokes</option>
-              <option value="Unknown">Unknown</option>
-            </select>
-          </div>
+          {selectedDataset === "stroke" ? (
+            <>
+              <div className="param-group">
+                <label className="param-label">Gender</label>
+                <select
+                  className="param-input"
+                  value={predictionData.gender || 'Male'}
+                  onChange={(e) => handlePredictionChange('gender', e.target.value)}
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Age</label>
+                <input
+                  type="number"
+                  className="param-input"
+                  value={predictionData.age || 45}
+                  onChange={(e) => handlePredictionChange('age', parseFloat(e.target.value) || 0)}
+                  min="0"
+                  max="120"
+                />
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Hypertension</label>
+                <select
+                  className="param-input"
+                  value={predictionData.hypertension || 0}
+                  onChange={(e) => handlePredictionChange('hypertension', parseInt(e.target.value))}
+                >
+                  <option value={0}>No</option>
+                  <option value={1}>Yes</option>
+                </select>
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Heart Disease</label>
+                <select
+                  className="param-input"
+                  value={predictionData.heart_disease || 0}
+                  onChange={(e) => handlePredictionChange('heart_disease', parseInt(e.target.value))}
+                >
+                  <option value={0}>No</option>
+                  <option value={1}>Yes</option>
+                </select>
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Ever Married</label>
+                <select
+                  className="param-input"
+                  value={predictionData.ever_married || 'Yes'}
+                  onChange={(e) => handlePredictionChange('ever_married', e.target.value)}
+                >
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Work Type</label>
+                <select
+                  className="param-input"
+                  value={predictionData.work_type || 'Private'}
+                  onChange={(e) => handlePredictionChange('work_type', e.target.value)}
+                >
+                  <option value="Private">Private</option>
+                  <option value="Self-employed">Self-employed</option>
+                  <option value="Govt_job">Government Job</option>
+                  <option value="children">Children</option>
+                  <option value="Never_worked">Never Worked</option>
+                </select>
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Residence Type</label>
+                <select
+                  className="param-input"
+                  value={predictionData.Residence_type || 'Urban'}
+                  onChange={(e) => handlePredictionChange('Residence_type', e.target.value)}
+                >
+                  <option value="Urban">Urban</option>
+                  <option value="Rural">Rural</option>
+                </select>
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Average Glucose Level</label>
+                <input
+                  type="number"
+                  className="param-input"
+                  value={predictionData.avg_glucose_level || 95.0}
+                  onChange={(e) => handlePredictionChange('avg_glucose_level', parseFloat(e.target.value) || 0)}
+                  min="50"
+                  max="300"
+                  step="0.1"
+                />
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">BMI</label>
+                <input
+                  type="number"
+                  className="param-input"
+                  value={predictionData.bmi || 25.0}
+                  onChange={(e) => handlePredictionChange('bmi', parseFloat(e.target.value) || 0)}
+                  min="10"
+                  max="50"
+                  step="0.1"
+                />
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Smoking Status</label>
+                <select
+                  className="param-input"
+                  value={predictionData.smoking_status || 'never smoked'}
+                  onChange={(e) => handlePredictionChange('smoking_status', e.target.value)}
+                >
+                  <option value="never smoked">Never Smoked</option>
+                  <option value="formerly smoked">Formerly Smoked</option>
+                  <option value="smokes">Smokes</option>
+                  <option value="Unknown">Unknown</option>
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="param-group">
+                <label className="param-label">Credit Score</label>
+                <input
+                  type="number"
+                  className="param-input"
+                  value={predictionData.CreditScore || 650}
+                  onChange={(e) => handlePredictionChange('CreditScore', parseFloat(e.target.value) || 0)}
+                  min="300"
+                  max="850"
+                />
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Geography</label>
+                <select
+                  className="param-input"
+                  value={predictionData.Geography || 'France'}
+                  onChange={(e) => handlePredictionChange('Geography', e.target.value)}
+                >
+                  <option value="France">France</option>
+                  <option value="Spain">Spain</option>
+                  <option value="Germany">Germany</option>
+                </select>
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Gender</label>
+                <select
+                  className="param-input"
+                  value={predictionData.Gender || 'Male'}
+                  onChange={(e) => handlePredictionChange('Gender', e.target.value)}
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Age</label>
+                <input
+                  type="number"
+                  className="param-input"
+                  value={predictionData.Age || 35}
+                  onChange={(e) => handlePredictionChange('Age', parseFloat(e.target.value) || 0)}
+                  min="18"
+                  max="100"
+                />
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Tenure</label>
+                <input
+                  type="number"
+                  className="param-input"
+                  value={predictionData.Tenure || 5}
+                  onChange={(e) => handlePredictionChange('Tenure', parseFloat(e.target.value) || 0)}
+                  min="0"
+                  max="10"
+                />
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Balance</label>
+                <input
+                  type="number"
+                  className="param-input"
+                  value={predictionData.Balance || 1000.0}
+                  onChange={(e) => handlePredictionChange('Balance', parseFloat(e.target.value) || 0)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Number of Products</label>
+                <input
+                  type="number"
+                  className="param-input"
+                  value={predictionData.NumOfProducts || 2}
+                  onChange={(e) => handlePredictionChange('NumOfProducts', parseFloat(e.target.value) || 0)}
+                  min="1"
+                  max="4"
+                />
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Has Credit Card</label>
+                <select
+                  className="param-input"
+                  value={predictionData.HasCrCard || 1}
+                  onChange={(e) => handlePredictionChange('HasCrCard', parseInt(e.target.value))}
+                >
+                  <option value={0}>No</option>
+                  <option value={1}>Yes</option>
+                </select>
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Is Active Member</label>
+                <select
+                  className="param-input"
+                  value={predictionData.IsActiveMember || 1}
+                  onChange={(e) => handlePredictionChange('IsActiveMember', parseInt(e.target.value))}
+                >
+                  <option value={0}>No</option>
+                  <option value={1}>Yes</option>
+                </select>
+              </div>
+              
+              <div className="param-group">
+                <label className="param-label">Estimated Salary</label>
+                <input
+                  type="number"
+                  className="param-input"
+                  value={predictionData.EstimatedSalary || 50000.0}
+                  onChange={(e) => handlePredictionChange('EstimatedSalary', parseFloat(e.target.value) || 0)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </>
+          )}
         </div>
         
         <div className="controls-row">
           <button
             className="button button-primary"
             onClick={handlePredict}
-            disabled={isTraining}
+            disabled={isTraining || !metrics || !metrics.accuracy}
           >
-            Predict Stroke Risk
+            {selectedDataset === "stroke" ? "Predict Stroke Risk" : "Predict Churn Risk"}
           </button>
         </div>
         
@@ -1445,7 +1624,7 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
             {predictionResult.error ? (
               <div style={{ 
                 padding: '1.5rem', 
-                backgroundColor: '#fff3cd',
+                backgroundColor: 'rgba(255, 193, 7, 0.2)',
                 border: '2px solid #ffc107',
                 borderRadius: '8px',
                 textAlign: 'center'
@@ -1482,10 +1661,10 @@ const AlgorithmPage = ({ algorithm, title, description, defaultParams = {} }) =>
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
                   <div>
-                    <strong>No Stroke:</strong> {(predictionResult.probability_no_stroke * 100).toFixed(1)}%
+                    <strong>{selectedDataset === "stroke" ? "No Stroke:" : "No Churn:"}</strong> {((predictionResult.probability_no_stroke || predictionResult.probability_no_churn) * 100).toFixed(1)}%
                   </div>
                   <div>
-                    <strong>Stroke:</strong> {(predictionResult.probability_stroke * 100).toFixed(1)}%
+                    <strong>{selectedDataset === "stroke" ? "Stroke:" : "Churn:"}</strong> {((predictionResult.probability_stroke || predictionResult.probability_churn) * 100).toFixed(1)}%
                   </div>
                 </div>
                 <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>

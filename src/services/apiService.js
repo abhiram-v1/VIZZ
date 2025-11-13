@@ -64,6 +64,13 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  async predictChurn(data) {
+    return this.request('/predict/churn', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export default new ApiService();
