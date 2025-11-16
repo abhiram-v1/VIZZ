@@ -2,7 +2,7 @@
 
 A comprehensive, interactive web application that combines real-time machine learning algorithm demonstrations with an engaging, story-driven educational experience. This project teaches machine learning concepts through hands-on experimentation and an immersive learning journey.
 
-![ML Learning Journey Homepage](i1.png)
+![ML Learning Journey Homepage](images/i1.png)
 *Figure 1: ML Learning Journey homepage - The main entry point featuring Alex's learning journey through machine learning concepts*
 
 ## 🎯 Project Overview
@@ -21,7 +21,7 @@ This application serves two main purposes:
 - **Search Functionality**: Smart search (Ctrl+K) that navigates directly to algorithm explanations
 - **AdaBoost Step-by-Step**: Auto-play slideshow (4.5s intervals) with visual walkthrough of how AdaBoost works
 
-![Decision Tree Visualization](i2.png)
+![Decision Tree Visualization](images/i2.png)
 *Figure 2: Decision Tree visualization - Interactive example showing "Is it raining?" decision tree with clear visual structure*
 
 ### 2. Real-Time Algorithm Training
@@ -31,7 +31,7 @@ This application serves two main purposes:
 - **Parameter Controls**: Adjust hyperparameters (n_estimators, learning_rate, max_depth) on the fly
 - **Dataset Selection**: Choose between Stroke Prediction or Customer Churn datasets
 
-![Algorithm Training Interface](i3.png)
+![Algorithm Training Interface](images/i3.png)
 *Figure 3: Algorithm training page - Real-time training with parameter controls, live metrics, and prediction form*
 
 ### 3. Decision Boundary Visualizations
@@ -40,7 +40,7 @@ This application serves two main purposes:
 - **Auto-Play Slideshow**: Play button automatically advances through decision boundaries (2-second intervals)
 - **Manual Control**: Pause/play and navigate manually with previous/next buttons
 
-![Decision Boundary Visualization](i5.png)
+![Decision Boundary Visualization](images/i7.png)
 *Figure 4: Decision boundary carousel - Visual representation of how models separate different classes in feature space*
 
 ### 4. AdaBoost Interactive Explanation
@@ -49,11 +49,10 @@ This application serves two main purposes:
 - **Weight Visualization**: See how misclassified examples get higher weights
 - **Smart Scrolling**: Automatically adjusts scroll position to show full content of each slide
 
-![AdaBoost Step-by-Step Explanation](i4.png)
+![AdaBoost Step-by-Step Explanation](images/i6.png)
 *Figure 5: AdaBoost explanation slideshow - Interactive walkthrough showing how AdaBoost learns from mistakes*
 
 ## 🚀 Quick Start
-
 ### Automated Startup (Recommended)
 
 **Windows:**
